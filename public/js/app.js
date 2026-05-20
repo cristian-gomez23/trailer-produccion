@@ -185,7 +185,7 @@ function calcProgress(t) {
   if (t.finalizado) return 100
   if (!t.en_produccion || !t.fecha_inicio || !t.fecha_fin) return 0
   const start = new Date(t.fecha_inicio), end = new Date(t.fecha_fin)
-  const now = new Date(); now.setHours(0,0,0,0)
+  const now = new Date(new Date().toLocaleDateString('en-CA', {timeZone: 'America/Argentina/Buenos_Aires'}))
   const total = end - start
   if (total <= 0) return now >= end ? 100 : 0
   return Math.min(100, Math.max(0, Math.round(((now - start) / total) * 100)))
@@ -194,7 +194,7 @@ function calcProgress(t) {
 function getStatus(t) {
   if (t.finalizado) return 'done'
   if (!t.en_produccion) return 'pending'
-  const now = new Date(); now.setHours(0,0,0,0)
+  const now = new Date(new Date().toLocaleDateString('en-CA', {timeZone: 'America/Argentina/Buenos_Aires'}))
   return now > new Date(t.fecha_fin) ? 'overdue' : 'in-prod'
 }
 
@@ -299,7 +299,7 @@ function renderTimeline() {
     return
   }
 
-  const now = new Date(); now.setHours(0,0,0,0)
+  const now = new Date(new Date().toLocaleDateString('en-CA', {timeZone: 'America/Argentina/Buenos_Aires'}))
   const allDates = trailers.flatMap(t => [
     t.fecha_inicio ? new Date(t.fecha_inicio) : now,
     t.fecha_fin    ? new Date(t.fecha_fin)    : now
