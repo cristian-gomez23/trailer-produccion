@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PyG Servicios — Producción de Trailers</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="/css/app.css"/>
+</head>
+<body>
+
+  <!-- ── HEADER ───────────────────────────────── -->
+  <header class="app-header">
+    <div class="header-left">
+      <img src="/img/PyG-logo_mini.png" alt="PyG" class="header-logo"/>
+      <div class="header-title">
+        <span class="header-app">Producción de Trailers</span>
+        <span class="header-sub">Gestión y seguimiento</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="header-stat" id="header-stat" style="display:none">
+        <span class="header-stat-label">EN PRODUCCIÓN</span>
+        <span class="header-stat-val" id="header-stat-val">—</span>
+      </div>
+      <div class="header-status">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-label">Conectando...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── TOOLBAR ──────────────────────────────── -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="search-wrap">
+        <i class="ti ti-search"></i>
+        <input type="text" id="search-input" placeholder="Buscar por nombre, chapa..."/>
+      </div>
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="registro">
+          <i class="ti ti-clipboard-list"></i> Registros
+        </button>
+        <button class="tab-btn" data-tab="tablero">
+          <i class="ti ti-chart-gantt"></i> Tablero
+        </button>
+      </div>
+    </div>
+    <div class="toolbar-right">
+      <select id="filter-status" class="filter-select">
+        <option value="">Todos los estados</option>
+        <option value="pending">Pendiente</option>
+        <option value="in-prod">En producción</option>
+        <option value="done">Finalizado</option>
+        <option value="overdue">Vencido</option>
+      </select>
+      <button class="btn-refresh" onclick="loadTrailers()">
+        <i class="ti ti-refresh"></i>
+      </button>
+      <button class="btn-nuevo" id="btn-open-form">
+        <i class="ti ti-plus"></i> Nuevo Trailer
+      </button>
+    </div>
+  </div>
+
+  <!-- ── MAIN ─────────────────────────────────── -->
+  <main class="main-content">
+
+    <!-- FORM MODAL -->
+    <div class="modal-overlay" id="modal-overlay" style="display:none">
+      <div class="modal">
+        <div class="modal-header">
+          <span id="form-title">Nuevo Trailer</span>
+          <button class="modal-close" id="btn-close-form"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group span2">
+              <label>Nombre / Descripción *</label>
+              <input type="text" id="f-nombre" placeholder="Ej: Trailer Frigorífico #12"/>
+            </div>
+            <div class="form-group">
+              <label>Modelo</label>
+              <input type="text" id="f-modelo" placeholder="Ej: Schwarzmüller SPA 3E"/>
+            </div>
+            <div class="form-group">
+              <label>Chapa / Patente *</label>
+              <input type="text" id="f-chapa" class="mono" placeholder="AB 123 CD"/>
+            </div>
+            <div class="form-group">
+              <label>Fecha inicio producción</label>
+              <input type="date" id="f-inicio"/>
+            </div>
+            <div class="form-group">
+              <label>Fecha estimada de fin *</label>
+              <input type="date" id="f-fecha"/>
+            </div>
+            <div class="form-group span2">
+              <label>Prioridad</label>
+              <select id="f-prio">
+                <option value="normal">Normal</option>
+                <option value="alta">Alta</option>
+                <option value="urgente">Urgente</option>
+              </select>
+            </div>
+          </div>
+          <input type="hidden" id="f-edit-id"/>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" id="btn-cancel-form">Cancelar</button>
+          <button class="btn-nuevo" id="btn-save-form">
+            <i class="ti ti-device-floppy"></i> Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB REGISTRO -->
+    <section id="tab-registro" class="tab-panel active">
+      <div class="table-card">
+        <table class="data-table" id="trailers-table">
+          <thead>
+            <tr>
+              <th>CHAPA</th>
+              <th>TRAILER</th>
+              <th>MODELO</th>
+              <th>INICIO</th>
+              <th>FIN ESTIMADO</th>
+              <th>AVANCE</th>
+              <th>ESTADO</th>
+              <th>ACCIONES</th>
+            </tr>
+          </thead>
+          <tbody id="trailers-tbody"></tbody>
+        </table>
+        <div id="table-empty" class="empty-state" style="display:none">
+          <i class="ti ti-truck"></i>
+          <p>No hay trailers registrados</p>
+          <button class="btn-nuevo" onclick="document.getElementById('btn-open-form').click()">
+            <i class="ti ti-plus"></i> Agregar el primero
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB TABLERO -->
+    <section id="tab-tablero" class="tab-panel">
+      <div class="summary-grid" id="summary-cards"></div>
+      <div class="table-card">
+        <div class="gantt-wrap">
+          <div id="gantt"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="toast" class="toast"></div>
+  <script src="/js/app.js"></script>
+</body>
+</html>
