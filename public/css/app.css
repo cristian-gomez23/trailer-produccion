@@ -692,3 +692,35 @@ body {
 .action-btn.play:hover  { color: var(--blue); background: var(--blue-light); }
 .action-btn.play.active { color: var(--blue); }
 .action-btn.play.active:hover { color: var(--amber); background: var(--amber-bg); }
+
+/* ── GANTT TOOLTIP ───────────────────── */
+#gantt-tooltip {
+  position: fixed;
+  display: none;
+  flex-direction: column;
+  gap: 3px;
+  background: #1e293b;
+  color: #f1f5f9;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: var(--font);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  z-index: 9999;
+  pointer-events: none;
+  max-width: 240px;
+  line-height: 1.6;
+}
+
+#gantt-tooltip strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+  padding-bottom: 5px;
+  margin-bottom: 2px;
+}
+
+#gantt-tooltip span {
+  color: #94a3b8;
+}

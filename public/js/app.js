@@ -179,8 +179,8 @@ function bindFilters() {
 function calcProgress(t) {
   if (t.finalizado) return 100
   if (!t.en_produccion || !t.fecha_inicio || !t.fecha_fin) return 0
-  const start = new Date(t.fecha_inicio + 'T00:00:00')
-  const end   = new Date(t.fecha_fin    + 'T00:00:00')
+  const start = new Date(t.fecha_inicio + 'T12:00:00')
+  const end   = new Date(t.fecha_fin    + 'T12:00:00')
   const now   = hoyCorrecto()
   const total = end - start
   if (total <= 0) return now >= end ? 100 : 0
@@ -191,7 +191,7 @@ function getStatus(t) {
   if (t.finalizado) return 'done'
   if (!t.en_produccion) return 'pending'
   const now = hoyCorrecto()
-  return now > new Date(t.fecha_fin + 'T00:00:00') ? 'overdue' : 'in-prod'
+  return now > new Date(t.fecha_fin + 'T12:00:00') ? 'overdue' : 'in-prod'
 }
 
 const STATUS_LABEL = { done: 'Completado', pending: 'Pendiente', 'in-prod': 'En Producción', overdue: 'Vencido' }
@@ -316,20 +316,31 @@ function renderTimeline() {
 
   // Ordenar por fecha_inicio asc, pendientes al final
   const sorted = [...trailers].sort((a, b) => {
-    const da = a.fecha_inicio ? new Date(a.fecha_inicio + 'T00:00:00') : new Date('9999-01-01')
-    const db = b.fecha_inicio ? new Date(b.fecha_inicio + 'T00:00:00') : new Date('9999-01-01')
+    const da = a.fecha_inicio ? new Date(a.fecha_inicio + 'T12:00:00') : new Date('9999-01-01')
+    const db = b.fecha_inicio ? new Date(b.fecha_inicio + 'T12:00:00') : new Date('9999-01-01')
     return da - db
   })
 
   const rowsHtml = sorted.map(t => {
     const st    = getStatus(t)
     const prog  = calcProgress(t)
-    const startD = t.fecha_inicio ? new Date(t.fecha_inicio + 'T00:00:00') : now
-    const endD   = t.fecha_fin    ? new Date(t.fecha_fin    + 'T00:00:00') : now
+    const startD = t.fecha_inicio ? new Date(t.fecha_inicio + 'T12:00:00') : now
+    const endD   = t.fecha_fin    ? new Date(t.fecha_fin    + 'T12:00:00') : now
     const left   = pct(startD)
     const width  = Math.max(4, pct(endD) - left)
     const label  = STATUS_LABEL[st] + (st !== 'pending' ? ` · ${prog}%` : '')
     const innerW = (st === 'done' || st === 'overdue') ? 100 : prog
+
+    const tooltip = [
+      t.nombre,
+      t.modelo ? `Modelo: ${t.modelo}` : null,
+      `Chapa: ${t.chapa}`,
+      t.fecha_inicio ? `Inicio: ${fmtDate(t.fecha_inicio)}` : null,
+      `Fin estimado: ${fmtDate(t.fecha_fin)}`,
+      t.fecha_real_fin ? `Fin real: ${fmtDate(t.fecha_real_fin)}` : null,
+      `Estado: ${STATUS_LABEL[st]}`,
+      st !== 'pending' ? `Avance: ${prog}%` : null,
+    ].filter(Boolean).join('\n')
 
     return `<div class="gantt-row">
       <div class="gantt-row-info">
@@ -340,7 +351,9 @@ function renderTimeline() {
         ${todayPct >= 0 && todayPct <= 100 ? `
           <div class="today-line" style="left:${todayPct}%"></div>
           <div class="today-pip"  style="left:${todayPct}%"></div>` : ''}
-        <div class="gantt-bar ${st}" style="left:${left}%;width:${width}%">
+        <div class="gantt-bar ${st}" style="left:${left}%;width:${width}%"
+          onmouseenter="showTooltip(event, \`${tooltip.replace(/`/g,"'")}\`)"
+          onmouseleave="hideTooltip()">
           <div class="gantt-bar-fill" style="width:${innerW}%"></div>
           <span>${label}</span>
         </div>
@@ -349,6 +362,33 @@ function renderTimeline() {
   }).join('')
 
   gantt.innerHTML = header + rowsHtml
+}
+
+/* ── TOOLTIP ─────────────────────────── */
+function showTooltip(e, text) {
+  let tip = document.getElementById('gantt-tooltip')
+  if (!tip) {
+    tip = document.createElement('div')
+    tip.id = 'gantt-tooltip'
+    document.body.appendChild(tip)
+  }
+  tip.innerHTML = text.split('\n').map((l,i) =>
+    i === 0 ? `<strong>${l}</strong>` : `<span>${l}</span>`
+  ).join('')
+  tip.style.display = 'flex'
+  positionTooltip(e, tip)
+}
+
+function positionTooltip(e, tip) {
+  const x = e.clientX + 14
+  const y = e.clientY - 10
+  tip.style.left = Math.min(x, window.innerWidth - 220) + 'px'
+  tip.style.top  = Math.max(y, 8) + 'px'
+}
+
+function hideTooltip() {
+  const tip = document.getElementById('gantt-tooltip')
+  if (tip) tip.style.display = 'none'
 }
 
 function toast(msg, type = '') {
