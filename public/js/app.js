@@ -299,15 +299,15 @@ function renderTimeline() {
   minD.setDate(minD.getDate() - 4)
   maxD.setDate(maxD.getDate() + 7)
 
-  const span = maxD - minD
-  const COLS = Math.min(Math.round(span / 86400000), 26)
-  const step = Math.max(1, Math.floor(span / 86400000 / COLS))
+  const span = maxD.getTime() - minD.getTime()
+  const totalDays = Math.round(span / 86400000)
+  const step = Math.max(1, Math.round(totalDays / 28))
   const cols = []
-  for (let i = 0; i <= COLS; i++) {
-    const d = new Date(minD); d.setDate(d.getDate() + i * step); cols.push(d)
+  for (let d = new Date(minD); d <= maxD; d.setDate(d.getDate() + step)) {
+    cols.push(new Date(d))
   }
 
-  const pct = d => Math.max(0, Math.min(100, ((d - minD) / span) * 100))
+  const pct = d => Math.max(0, Math.min(100, ((d.getTime() - minD.getTime()) / span) * 100))
   const todayPct = pct(now)
 
   const header = `<div class="gantt-header">
