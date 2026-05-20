@@ -80,9 +80,15 @@ function clearForm() {
 }
 
 // Fecha de hoy en zona horaria Argentina
+function parseDate(str) {
+  if (!str) return null
+  const [y, m, d] = str.slice(0,10).split("-").map(Number)
+  return new Date(y, m - 1, d, 12, 0, 0)
+}
+
 function hoyCorrecto() {
   const str = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
-  return new Date(str + 'T00:00:00')
+  const [y, m, d] = str.split("-").map(Number); return new Date(y, m - 1, d, 12, 0, 0)
 }
 
 async function saveTrailer() {
@@ -179,8 +185,8 @@ function bindFilters() {
 function calcProgress(t) {
   if (t.finalizado) return 100
   if (!t.en_produccion || !t.fecha_inicio || !t.fecha_fin) return 0
-  const start = new Date(t.fecha_inicio + 'T12:00:00')
-  const end   = new Date(t.fecha_fin    + 'T12:00:00')
+  const start = parseDate(t.fecha_inicio)
+  const end   = parseDate(t.fecha_fin)
   const now   = hoyCorrecto()
   const total = end - start
   if (total <= 0) return now >= end ? 100 : 0
@@ -191,7 +197,7 @@ function getStatus(t) {
   if (t.finalizado) return 'done'
   if (!t.en_produccion) return 'pending'
   const now = hoyCorrecto()
-  return now > new Date(t.fecha_fin + 'T12:00:00') ? 'overdue' : 'in-prod'
+  return now > parseDate(t.fecha_fin) ? 'overdue' : 'in-prod'
 }
 
 const STATUS_LABEL = { done: 'Completado', pending: 'Pendiente', 'in-prod': 'En Producción', overdue: 'Vencido' }
@@ -285,8 +291,8 @@ function renderTimeline() {
 
   const now = hoyCorrecto()
   const allDates = trailers.flatMap(t => [
-    t.fecha_inicio ? new Date(t.fecha_inicio + 'T00:00:00') : now,
-    t.fecha_fin    ? new Date(t.fecha_fin    + 'T00:00:00') : now
+    t.fecha_inicio ? parseDate(t.fecha_inicio) : now,
+    t.fecha_fin    ? parseDate(t.fecha_fin) : now
   ])
   let minD = new Date(Math.min(...allDates.map(d => d.getTime())))
   let maxD = new Date(Math.max(...allDates.map(d => d.getTime())))
@@ -316,16 +322,16 @@ function renderTimeline() {
 
   // Ordenar por fecha_inicio asc, pendientes al final
   const sorted = [...trailers].sort((a, b) => {
-    const da = a.fecha_inicio ? new Date(a.fecha_inicio + 'T12:00:00') : new Date('9999-01-01')
-    const db = b.fecha_inicio ? new Date(b.fecha_inicio + 'T12:00:00') : new Date('9999-01-01')
+    const da = a.fecha_inicio ? parseDate(a.fecha_inicio) : new Date('9999-01-01')
+    const db = b.fecha_inicio ? parseDate(b.fecha_inicio) : new Date('9999-01-01')
     return da - db
   })
 
   const rowsHtml = sorted.map(t => {
     const st    = getStatus(t)
     const prog  = calcProgress(t)
-    const startD = t.fecha_inicio ? new Date(t.fecha_inicio + 'T12:00:00') : now
-    const endD   = t.fecha_fin    ? new Date(t.fecha_fin    + 'T12:00:00') : now
+    const startD = t.fecha_inicio ? parseDate(t.fecha_inicio) : now
+    const endD   = t.fecha_fin    ? parseDate(t.fecha_fin) : now
     const left   = pct(startD)
     const width  = Math.max(4, pct(endD) - left)
     const label  = STATUS_LABEL[st] + (st !== 'pending' ? ` · ${prog}%` : '')
