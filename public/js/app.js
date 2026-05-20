@@ -16,7 +16,6 @@ async function loadConfig() {
   } catch(e) {}
 }
 
-/* ── NAV ─────────────────────────────── */
 function bindNav() {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -29,7 +28,6 @@ function bindNav() {
   })
 }
 
-/* ── LOAD ────────────────────────────── */
 async function loadTrailers() {
   try {
     const res = await fetch('/api/trailers')
@@ -56,13 +54,12 @@ function updateHeaderStat() {
   el.style.display = 'block'
 }
 
-/* ── FORM ────────────────────────────── */
 function bindForm() {
   document.getElementById('btn-open-form').addEventListener('click', () => {
     document.getElementById('form-title').textContent = 'Nuevo Trailer'
     document.getElementById('f-edit-id').value = ''
     clearForm()
-    document.getElementById('f-inicio').value = new Date().toISOString().slice(0,10)
+    document.getElementById('f-inicio').value = hoyCorrecto().toISOString().slice(0,10)
     showModal()
   })
   document.getElementById('btn-close-form').addEventListener('click', hideModal)
@@ -80,6 +77,12 @@ function clearForm() {
   ['f-nombre','f-modelo','f-chapa','f-inicio','f-fecha'].forEach(id => document.getElementById(id).value = '')
   document.getElementById('f-prio').value = 'normal'
   document.getElementById('f-edit-id').value = ''
+}
+
+// Fecha de hoy en zona horaria Argentina
+function hoyCorrecto() {
+  const str = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
+  return new Date(str + 'T00:00:00')
 }
 
 async function saveTrailer() {
@@ -121,9 +124,6 @@ function editTrailer(id) {
   showModal()
 }
 
-/* ── ACCIONES DE ESTADO ──────────────── */
-
-// Iniciar producción (Pendiente → En Producción)
 async function toggleProduccion(id) {
   const t = trailers.find(x => x.id === id)
   if (!t || t.finalizado) return
@@ -135,7 +135,7 @@ async function toggleProduccion(id) {
       body: JSON.stringify({
         en_produccion: newProd,
         fecha_inicio: newProd && !t.fecha_inicio
-          ? new Date().toISOString().slice(0,10)
+          ? hoyCorrecto().toISOString().slice(0,10)
           : t.fecha_inicio
       })
     })
@@ -145,7 +145,6 @@ async function toggleProduccion(id) {
   } catch { toast('Error al actualizar', 'error') }
 }
 
-// Finalizar (En Producción → Finalizado)
 async function toggleDone(id) {
   const t = trailers.find(x => x.id === id)
   if (!t) return
@@ -154,10 +153,7 @@ async function toggleDone(id) {
     const res = await fetch(`/api/trailers/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        finalizado: newDone,
-        en_produccion: newDone ? true : t.en_produccion
-      })
+      body: JSON.stringify({ finalizado: newDone, en_produccion: newDone ? true : t.en_produccion })
     })
     if (!res.ok) throw new Error()
     await loadTrailers()
@@ -175,7 +171,6 @@ async function deleteTrailer(id) {
   } catch { toast('Error al eliminar', 'error') }
 }
 
-/* ── TABLE ───────────────────────────── */
 function bindFilters() {
   document.getElementById('search-input').addEventListener('input', renderTable)
   document.getElementById('filter-status').addEventListener('change', renderTable)
@@ -184,8 +179,9 @@ function bindFilters() {
 function calcProgress(t) {
   if (t.finalizado) return 100
   if (!t.en_produccion || !t.fecha_inicio || !t.fecha_fin) return 0
-  const start = new Date(t.fecha_inicio), end = new Date(t.fecha_fin)
-  const now = new Date(new Date().toLocaleDateString('en-CA', {timeZone: 'America/Argentina/Buenos_Aires'}))
+  const start = new Date(t.fecha_inicio + 'T00:00:00')
+  const end   = new Date(t.fecha_fin    + 'T00:00:00')
+  const now   = hoyCorrecto()
   const total = end - start
   if (total <= 0) return now >= end ? 100 : 0
   return Math.min(100, Math.max(0, Math.round(((now - start) / total) * 100)))
@@ -194,8 +190,8 @@ function calcProgress(t) {
 function getStatus(t) {
   if (t.finalizado) return 'done'
   if (!t.en_produccion) return 'pending'
-  const now = new Date(new Date().toLocaleDateString('en-CA', {timeZone: 'America/Argentina/Buenos_Aires'}))
-  return now > new Date(t.fecha_fin) ? 'overdue' : 'in-prod'
+  const now = hoyCorrecto()
+  return now > new Date(t.fecha_fin + 'T00:00:00') ? 'overdue' : 'in-prod'
 }
 
 const STATUS_LABEL = { done: 'Completado', pending: 'Pendiente', 'in-prod': 'En Producción', overdue: 'Vencido' }
@@ -231,23 +227,17 @@ function renderTable() {
       ? `<div class="t-prio" style="color:${t.prioridad==='urgente'?'#dc2626':'#d97706'}">${t.prioridad==='urgente'?'⚡ Urgente':'↑ Alta'}</div>`
       : ''
 
-    // Botón PLAY — solo visible si está pendiente o en producción (no finalizado)
     const btnPlay = !t.finalizado ? `
-      <button
-        class="action-btn play ${t.en_produccion ? 'active' : ''}"
+      <button class="action-btn play ${t.en_produccion ? 'active' : ''}"
         onclick="toggleProduccion(${t.id})"
-        title="${t.en_produccion ? 'Pausar producción' : 'Iniciar producción'}"
-      >
+        title="${t.en_produccion ? 'Pausar producción' : 'Iniciar producción'}">
         <i class="ti ti-${t.en_produccion ? 'player-pause' : 'player-play'}"></i>
       </button>` : ''
 
-    // Botón CHECK — finalizar (siempre visible)
     const btnCheck = `
-      <button
-        class="action-btn check ${t.finalizado ? 'active' : ''}"
+      <button class="action-btn check ${t.finalizado ? 'active' : ''}"
         onclick="toggleDone(${t.id})"
-        title="${t.finalizado ? 'Desmarcar como finalizado' : 'Marcar como finalizado'}"
-      >
+        title="${t.finalizado ? 'Desmarcar' : 'Marcar como finalizado'}">
         <i class="ti ti-check"></i>
       </button>`
 
@@ -264,21 +254,15 @@ function renderTable() {
       <td><span class="badge ${BADGE_CLASS[st]}">${STATUS_LABEL[st]}</span></td>
       <td>
         <div class="row-actions">
-          ${btnPlay}
-          ${btnCheck}
-          <button class="action-btn edit" onclick="editTrailer(${t.id})" title="Editar">
-            <i class="ti ti-pencil"></i>
-          </button>
-          <button class="action-btn del" onclick="deleteTrailer(${t.id})" title="Eliminar">
-            <i class="ti ti-trash"></i>
-          </button>
+          ${btnPlay}${btnCheck}
+          <button class="action-btn edit" onclick="editTrailer(${t.id})" title="Editar"><i class="ti ti-pencil"></i></button>
+          <button class="action-btn del"  onclick="deleteTrailer(${t.id})" title="Eliminar"><i class="ti ti-trash"></i></button>
         </div>
       </td>
     </tr>`
   }).join('')
 }
 
-/* ── GANTT ───────────────────────────── */
 function renderTimeline() {
   const gantt = document.getElementById('gantt')
   const cards = document.getElementById('summary-cards')
@@ -299,10 +283,10 @@ function renderTimeline() {
     return
   }
 
-  const now = new Date(new Date().toLocaleDateString('en-CA', {timeZone: 'America/Argentina/Buenos_Aires'}))
+  const now = hoyCorrecto()
   const allDates = trailers.flatMap(t => [
-    t.fecha_inicio ? new Date(t.fecha_inicio) : now,
-    t.fecha_fin    ? new Date(t.fecha_fin)    : now
+    t.fecha_inicio ? new Date(t.fecha_inicio + 'T00:00:00') : now,
+    t.fecha_fin    ? new Date(t.fecha_fin    + 'T00:00:00') : now
   ])
   let minD = new Date(Math.min(...allDates.map(d => d.getTime())))
   let maxD = new Date(Math.max(...allDates.map(d => d.getTime())))
@@ -330,11 +314,18 @@ function renderTimeline() {
     </div>
   </div>`
 
-  const rowsHtml = trailers.map(t => {
+  // Ordenar por fecha_inicio asc, pendientes al final
+  const sorted = [...trailers].sort((a, b) => {
+    const da = a.fecha_inicio ? new Date(a.fecha_inicio + 'T00:00:00') : new Date('9999-01-01')
+    const db = b.fecha_inicio ? new Date(b.fecha_inicio + 'T00:00:00') : new Date('9999-01-01')
+    return da - db
+  })
+
+  const rowsHtml = sorted.map(t => {
     const st    = getStatus(t)
     const prog  = calcProgress(t)
-    const startD = t.fecha_inicio ? new Date(t.fecha_inicio) : now
-    const endD   = t.fecha_fin    ? new Date(t.fecha_fin)    : now
+    const startD = t.fecha_inicio ? new Date(t.fecha_inicio + 'T00:00:00') : now
+    const endD   = t.fecha_fin    ? new Date(t.fecha_fin    + 'T00:00:00') : now
     const left   = pct(startD)
     const width  = Math.max(4, pct(endD) - left)
     const label  = STATUS_LABEL[st] + (st !== 'pending' ? ` · ${prog}%` : '')
@@ -343,7 +334,7 @@ function renderTimeline() {
     return `<div class="gantt-row">
       <div class="gantt-row-info">
         <div class="gr-name">${t.nombre}</div>
-        <div class="gr-chapa">${t.chapa}</div>
+        <div class="gr-chapa">${t.chapa}${t.modelo ? ' · ' + t.modelo : ''}</div>
       </div>
       <div class="gantt-bar-area">
         ${todayPct >= 0 && todayPct <= 100 ? `
@@ -360,7 +351,6 @@ function renderTimeline() {
   gantt.innerHTML = header + rowsHtml
 }
 
-/* ── TOAST ───────────────────────────── */
 function toast(msg, type = '') {
   const el = document.getElementById('toast')
   el.textContent = msg
