@@ -20,11 +20,14 @@ app.get('/api/config', (req, res) => {
 app.use('/api/trailers', require('./routes/trailers'))
 app.use('/api/settings', require('./routes/settings'))
 
+const makeAreaRouter = require('./routes/area')
+app.use('/api/panol',   makeAreaRouter('panol'))
+app.use('/api/calidad', makeAreaRouter('calidad'))
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
 })
 
-// Para Vercel: exportar app además de escuchar localmente
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`\n✅  Trailer Tracker corriendo en http://localhost:${PORT}\n`)

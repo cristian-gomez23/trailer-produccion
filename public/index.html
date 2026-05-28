@@ -10,7 +10,6 @@
 </head>
 <body>
 
-  <!-- ── HEADER ───────────────────────────────── -->
   <header class="app-header">
     <div class="header-left">
       <img src="/img/PyG-logo_mini.png" alt="PyG" class="header-logo"/>
@@ -31,20 +30,16 @@
     </div>
   </header>
 
-  <!-- ── TOOLBAR ──────────────────────────────── -->
   <div class="toolbar">
     <div class="toolbar-left">
       <div class="search-wrap">
         <i class="ti ti-search"></i>
-        <input type="text" id="search-input" placeholder="Buscar por nombre, chapa..."/>
+        <input type="text" id="search-input" placeholder="Buscar..."/>
       </div>
       <div class="tab-bar">
-        <button class="tab-btn active" data-tab="registro">
-          <i class="ti ti-clipboard-list"></i> Registros
-        </button>
-        <button class="tab-btn" data-tab="tablero">
-          <i class="ti ti-chart-gantt"></i> Tablero
-        </button>
+        <button class="tab-btn active" data-tab="trailers"><i class="ti ti-truck"></i> Trailers</button>
+        <button class="tab-btn" data-tab="panol"><i class="ti ti-tool"></i> Pañol</button>
+        <button class="tab-btn" data-tab="calidad"><i class="ti ti-clipboard-check"></i> Calidad</button>
       </div>
     </div>
     <div class="toolbar-right">
@@ -55,102 +50,202 @@
         <option value="done">Finalizado</option>
         <option value="overdue">Vencido</option>
       </select>
-      <button class="btn-refresh" onclick="loadTrailers()">
-        <i class="ti ti-refresh"></i>
-      </button>
-      <button class="btn-nuevo" id="btn-open-form">
-        <i class="ti ti-plus"></i> Nuevo Trailer
-      </button>
+      <button class="btn-refresh" id="btn-refresh"><i class="ti ti-refresh"></i></button>
+      <button class="btn-nuevo" id="btn-open-form"><i class="ti ti-plus"></i> <span id="btn-nuevo-label">Nuevo Trailer</span></button>
     </div>
   </div>
 
-  <!-- ── MAIN ─────────────────────────────────── -->
   <main class="main-content">
 
-    <!-- FORM MODAL -->
-    <div class="modal-overlay" id="modal-overlay" style="display:none">
+    <!-- MODAL TRAILERS -->
+    <div class="modal-overlay" id="modal-trailers" style="display:none">
       <div class="modal">
         <div class="modal-header">
-          <span id="form-title">Nuevo Trailer</span>
-          <button class="modal-close" id="btn-close-form"><i class="ti ti-x"></i></button>
+          <span id="form-title-trailers">Nuevo Trailer</span>
+          <button class="modal-close" onclick="hideModal('trailers')"><i class="ti ti-x"></i></button>
         </div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-group span2">
               <label>Nombre / Descripción *</label>
-              <input type="text" id="f-nombre" placeholder="Ej: Trailer T113"/>
+              <input type="text" id="t-nombre" placeholder="Ej: Trailer T113"/>
             </div>
             <div class="form-group">
               <label>Modelo</label>
-              <input type="text" id="f-modelo" placeholder="Ej: OF 6 MTS"/>
+              <input type="text" id="t-modelo" placeholder="Ej: OF 6 MTS"/>
             </div>
             <div class="form-group">
               <label>Chapa / Patente *</label>
-              <input type="text" id="f-chapa" class="mono" placeholder="AB 123 CD"/>
+              <input type="text" id="t-chapa" class="mono" placeholder="AB 123 CD"/>
             </div>
             <div class="form-group">
               <label>Fecha inicio producción</label>
-              <input type="date" id="f-inicio"/>
+              <input type="date" id="t-inicio"/>
             </div>
             <div class="form-group">
               <label>Fecha estimada de fin *</label>
-              <input type="date" id="f-fecha"/>
+              <input type="date" id="t-fecha"/>
             </div>
             <div class="form-group span2">
               <label>Prioridad</label>
-              <select id="f-prio">
+              <select id="t-prio">
                 <option value="normal">Normal</option>
                 <option value="alta">Alta</option>
                 <option value="urgente">Urgente</option>
               </select>
             </div>
           </div>
-          <input type="hidden" id="f-edit-id"/>
+          <input type="hidden" id="t-edit-id"/>
         </div>
         <div class="modal-footer">
-          <button class="btn-cancel" id="btn-cancel-form">Cancelar</button>
-          <button class="btn-nuevo" id="btn-save-form">
-            <i class="ti ti-device-floppy"></i> Guardar
-          </button>
+          <button class="btn-cancel" onclick="hideModal('trailers')">Cancelar</button>
+          <button class="btn-nuevo" id="btn-save-trailers"><i class="ti ti-device-floppy"></i> Guardar</button>
         </div>
       </div>
     </div>
 
-    <!-- TAB REGISTRO -->
-    <section id="tab-registro" class="tab-panel active">
-      <div class="table-card">
-        <table class="data-table" id="trailers-table">
-          <thead>
-            <tr>
-              <th>CHAPA</th>
-              <th>TRAILER</th>
-              <th>MODELO</th>
-              <th>INICIO</th>
-              <th>FIN ESTIMADO</th>
-              <th>AVANCE</th>
-              <th>ESTADO</th>
-              <th>ACCIONES</th>
-            </tr>
-          </thead>
-          <tbody id="trailers-tbody"></tbody>
-        </table>
-        <div id="table-empty" class="empty-state" style="display:none">
-          <i class="ti ti-truck"></i>
-          <p>No hay trailers registrados</p>
-          <button class="btn-nuevo" onclick="document.getElementById('btn-open-form').click()">
-            <i class="ti ti-plus"></i> Agregar el primero
-          </button>
+    <!-- MODAL ÁREA (Pañol / Calidad) -->
+    <div class="modal-overlay" id="modal-area" style="display:none">
+      <div class="modal">
+        <div class="modal-header">
+          <span id="form-title-area">Nueva Tarea</span>
+          <button class="modal-close" onclick="hideModal('area')"><i class="ti ti-x"></i></button>
         </div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group span2">
+              <label>Tarea *</label>
+              <input type="text" id="a-tarea" placeholder="Ej: Revisión stock tornillería"/>
+            </div>
+            <div class="form-group">
+              <label>Responsable</label>
+              <input type="text" id="a-responsable" placeholder="Ej: Juan Pérez"/>
+            </div>
+            <div class="form-group">
+              <label>Prioridad</label>
+              <select id="a-prio">
+                <option value="normal">Normal</option>
+                <option value="alta">Alta</option>
+                <option value="urgente">Urgente</option>
+              </select>
+            </div>
+            <div class="form-group span2">
+              <label>Descripción</label>
+              <input type="text" id="a-descripcion" placeholder="Detalle opcional..."/>
+            </div>
+            <div class="form-group">
+              <label>Fecha inicio</label>
+              <input type="date" id="a-inicio"/>
+            </div>
+            <div class="form-group">
+              <label>Fecha estimada de fin *</label>
+              <input type="date" id="a-fecha"/>
+            </div>
+          </div>
+          <input type="hidden" id="a-edit-id"/>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" onclick="hideModal('area')">Cancelar</button>
+          <button class="btn-nuevo" id="btn-save-area"><i class="ti ti-device-floppy"></i> Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB TRAILERS -->
+    <section id="tab-trailers" class="tab-panel active">
+      <div class="tab-section-header">
+        <div class="tab-view-btns">
+          <button class="view-btn active" data-view="trailers-list" onclick="switchView('trailers','list',this)"><i class="ti ti-list"></i> Registros</button>
+          <button class="view-btn" data-view="trailers-gantt" onclick="switchView('trailers','gantt',this)"><i class="ti ti-chart-gantt"></i> Tablero</button>
+        </div>
+      </div>
+
+      <div id="trailers-list">
+        <div class="summary-grid" id="trailers-summary"></div>
+        <div class="table-card">
+          <table class="data-table" id="trailers-table">
+            <thead><tr>
+              <th>CHAPA</th><th>TRAILER</th><th>MODELO</th>
+              <th>INICIO</th><th>FIN ESTIMADO</th><th>AVANCE</th><th>ESTADO</th><th>ACCIONES</th>
+            </tr></thead>
+            <tbody id="trailers-tbody"></tbody>
+          </table>
+          <div id="trailers-empty" class="empty-state" style="display:none">
+            <i class="ti ti-truck"></i><p>No hay trailers registrados</p>
+            <button class="btn-nuevo" onclick="document.getElementById('btn-open-form').click()"><i class="ti ti-plus"></i> Agregar el primero</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="trailers-gantt" style="display:none">
+        <div class="summary-grid" id="trailers-gantt-summary"></div>
+        <div class="table-card"><div class="gantt-wrap"><div id="gantt-trailers"></div></div></div>
       </div>
     </section>
 
-    <!-- TAB TABLERO -->
-    <section id="tab-tablero" class="tab-panel">
-      <div class="summary-grid" id="summary-cards"></div>
-      <div class="table-card">
-        <div class="gantt-wrap">
-          <div id="gantt"></div>
+    <!-- TAB PAÑOL -->
+    <section id="tab-panol" class="tab-panel">
+      <div class="tab-section-header">
+        <div class="area-badge panol-badge"><i class="ti ti-tool"></i> Cronograma Pañol</div>
+        <div class="tab-view-btns">
+          <button class="view-btn active" onclick="switchView('panol','list',this)"><i class="ti ti-list"></i> Registros</button>
+          <button class="view-btn" onclick="switchView('panol','gantt',this)"><i class="ti ti-chart-gantt"></i> Tablero</button>
         </div>
+      </div>
+
+      <div id="panol-list">
+        <div class="summary-grid" id="panol-summary"></div>
+        <div class="table-card">
+          <table class="data-table" id="panol-table">
+            <thead><tr>
+              <th>TAREA</th><th>RESPONSABLE</th><th>DESCRIPCIÓN</th>
+              <th>INICIO</th><th>FIN ESTIMADO</th><th>AVANCE</th><th>ESTADO</th><th>ACCIONES</th>
+            </tr></thead>
+            <tbody id="panol-tbody"></tbody>
+          </table>
+          <div id="panol-empty" class="empty-state" style="display:none">
+            <i class="ti ti-tool"></i><p>No hay tareas en Pañol</p>
+            <button class="btn-nuevo" onclick="document.getElementById('btn-open-form').click()"><i class="ti ti-plus"></i> Agregar la primera</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="panol-gantt" style="display:none">
+        <div class="summary-grid" id="panol-gantt-summary"></div>
+        <div class="table-card"><div class="gantt-wrap"><div id="gantt-panol"></div></div></div>
+      </div>
+    </section>
+
+    <!-- TAB CALIDAD -->
+    <section id="tab-calidad" class="tab-panel">
+      <div class="tab-section-header">
+        <div class="area-badge calidad-badge"><i class="ti ti-clipboard-check"></i> Cronograma Calidad</div>
+        <div class="tab-view-btns">
+          <button class="view-btn active" onclick="switchView('calidad','list',this)"><i class="ti ti-list"></i> Registros</button>
+          <button class="view-btn" onclick="switchView('calidad','gantt',this)"><i class="ti ti-chart-gantt"></i> Tablero</button>
+        </div>
+      </div>
+
+      <div id="calidad-list">
+        <div class="summary-grid" id="calidad-summary"></div>
+        <div class="table-card">
+          <table class="data-table" id="calidad-table">
+            <thead><tr>
+              <th>TAREA</th><th>RESPONSABLE</th><th>DESCRIPCIÓN</th>
+              <th>INICIO</th><th>FIN ESTIMADO</th><th>AVANCE</th><th>ESTADO</th><th>ACCIONES</th>
+            </tr></thead>
+            <tbody id="calidad-tbody"></tbody>
+          </table>
+          <div id="calidad-empty" class="empty-state" style="display:none">
+            <i class="ti ti-clipboard-check"></i><p>No hay tareas en Calidad</p>
+            <button class="btn-nuevo" onclick="document.getElementById('btn-open-form').click()"><i class="ti ti-plus"></i> Agregar la primera</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="calidad-gantt" style="display:none">
+        <div class="summary-grid" id="calidad-gantt-summary"></div>
+        <div class="table-card"><div class="gantt-wrap"><div id="gantt-calidad"></div></div></div>
       </div>
     </section>
 

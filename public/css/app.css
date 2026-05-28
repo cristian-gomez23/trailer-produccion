@@ -862,3 +862,56 @@ body {
   .filter-select { font-size: 12px; }
   .scard-val { font-size: 26px; }
 }
+
+/* ── TAB SECTION HEADER ──────────────── */
+.tab-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tab-view-btns {
+  display: flex;
+  gap: 3px;
+  background: var(--surface);
+  border: 1.5px solid var(--border-md);
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.view-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font);
+  color: var(--text-sec);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.view-btn:hover { color: var(--text); background: rgba(0,0,0,0.04); }
+.view-btn.active { background: var(--blue); color: #fff; }
+
+/* ── AREA BADGES ─────────────────────── */
+.area-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font);
+}
+
+.panol-badge   { background: #fff7ed; color: #9a3412; border: 1.5px solid #fed7aa; }
+.calidad-badge { background: #f0fdf4; color: #166534; border: 1.5px solid #bbf7d0; }
