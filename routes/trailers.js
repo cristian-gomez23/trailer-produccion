@@ -1,4 +1,3 @@
-process.env.TZ = 'America/Argentina/Buenos_Aires'
 const express = require('express')
 const router = express.Router()
 const supabase = require('../config/supabase')
