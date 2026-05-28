@@ -248,17 +248,17 @@ function renderTable() {
       </button>`
 
     return `<tr class="row-${st}">
-      <td><span class="chapa">${t.chapa}</span></td>
-      <td><div class="t-name">${t.nombre}</div>${prioHtml}</td>
-      <td style="color:var(--text-sec)">${t.modelo || '—'}</td>
-      <td style="color:var(--text-sec)">${fmtDate(t.fecha_inicio)}</td>
-      <td style="font-weight:600">${fmtDate(t.fecha_fin)}</td>
-      <td class="progress-cell">
+      <td data-label="Chapa"><span class="chapa">${t.chapa}</span></td>
+      <td data-label="Trailer"><div class="t-name">${t.nombre}</div>${prioHtml}</td>
+      <td data-label="Modelo" style="color:var(--text-sec)">${t.modelo || '—'}</td>
+      <td data-label="Inicio" style="color:var(--text-sec)">${fmtDate(t.fecha_inicio)}</td>
+      <td data-label="Fin est." style="font-weight:600">${fmtDate(t.fecha_fin)}</td>
+      <td data-label="Avance" class="progress-cell">
         <div class="progress-bg"><div class="progress-fill" style="width:${pct}%;background:${BAR_COLOR[st]}"></div></div>
         <div class="progress-pct">${pct}%</div>
       </td>
-      <td><span class="badge ${BADGE_CLASS[st]}">${STATUS_LABEL[st]}</span></td>
-      <td>
+      <td data-label="Estado"><span class="badge ${BADGE_CLASS[st]}">${STATUS_LABEL[st]}</span></td>
+      <td data-label="Acciones">
         <div class="row-actions">
           ${btnPlay}${btnCheck}
           <button class="action-btn edit" onclick="editTrailer(${t.id})" title="Editar"><i class="ti ti-pencil"></i></button>
@@ -300,10 +300,14 @@ function renderTimeline() {
   maxD.setDate(maxD.getDate() + 7)
 
   const span = maxD.getTime() - minD.getTime()
-  const totalDays = Math.round(span / 86400000)
-  const step = Math.max(1, Math.round(totalDays / 28))
+
+  // Columnas siempre en viernes
   const cols = []
-  for (let d = new Date(minD); d <= maxD; d.setDate(d.getDate() + step)) {
+  const firstFriday = new Date(minD)
+  const dayOfWeek = firstFriday.getDay()
+  const daysUntilFriday = dayOfWeek <= 5 ? 5 - dayOfWeek : 6
+  firstFriday.setDate(firstFriday.getDate() + daysUntilFriday)
+  for (let d = new Date(firstFriday); d <= maxD; d.setDate(d.getDate() + 7)) {
     cols.push(new Date(d))
   }
 
@@ -312,10 +316,11 @@ function renderTimeline() {
 
   const header = `<div class="gantt-header">
     <div class="gantt-label-col"></div>
-    <div class="gantt-timeline">
+    <div class="gantt-timeline" style="position:relative">
       ${cols.map(d => {
-        const isT = Math.abs(d - now) < 86400000 * step * 0.5
-        return `<div class="gantt-col ${isT?'today-col':''}"><span>${d.getDate()}/${d.getMonth()+1}</span></div>`
+        const leftPct = pct(d)
+        const isT = Math.abs(d.getTime() - now.getTime()) < 86400000 * 3
+        return `<div class="gantt-col-abs ${isT?'today-col':''}" style="left:${leftPct}%"><span>${d.getDate()}/${d.getMonth()+1}</span></div>`
       }).join('')}
     </div>
   </div>`
@@ -363,6 +368,7 @@ function renderTimeline() {
           <div class="gantt-bar-fill" style="width:${innerW}%"></div>
           <span>${label}</span>
         </div>
+        <div class="gantt-end-label" style="left:${left + width}%">${fmtDate(t.fecha_fin)}</div>
       </div>
     </div>`
   }).join('')

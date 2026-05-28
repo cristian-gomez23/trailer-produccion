@@ -724,3 +724,141 @@ body {
 #gantt-tooltip span {
   color: #94a3b8;
 }
+
+/* ── GANTT COLUMNAS ABSOLUTAS (viernes) ── */
+.gantt-timeline {
+  position: relative;
+  flex: 1;
+  min-height: 20px;
+}
+
+.gantt-col-abs {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-hint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: var(--font);
+  white-space: nowrap;
+}
+
+.gantt-col-abs::before {
+  content: '';
+  display: block;
+  width: 1px;
+  height: 8px;
+  background: var(--border-md);
+  margin: 0 auto 2px;
+}
+
+.gantt-col-abs.today-col span { color: var(--blue); font-weight: 800; }
+
+/* Línea vertical de cada viernes en las filas */
+.gantt-bar-area::before {
+  display: none;
+}
+
+/* ── FECHA FIN AL FINAL DE LA BARRA ──── */
+.gantt-end-label {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-hint);
+  font-family: var(--font);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ── RESPONSIVE MOBILE ───────────────── */
+@media (max-width: 768px) {
+  .app-header { padding: 0 1rem; height: auto; min-height: 56px; flex-wrap: wrap; gap: 8px; padding-top: 10px; padding-bottom: 10px; }
+  .header-logo { height: 28px; }
+  .header-app { font-size: 14px; }
+  .header-sub { display: none; }
+  .header-stat { display: none !important; }
+
+  .toolbar {
+    height: auto;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px 1rem;
+    gap: 8px;
+    top: 56px;
+  }
+
+  .toolbar-left  { flex-direction: column; gap: 8px; }
+  .toolbar-right { justify-content: flex-end; flex-wrap: wrap; }
+
+  .search-wrap { width: 100%; }
+  .tab-bar { width: 100%; }
+  .tab-btn { flex: 1; justify-content: center; font-size: 12px; padding: 7px 10px; }
+
+  .main-content { padding: 1rem; }
+
+  /* Tabla mobile — cards */
+  .data-table thead { display: none; }
+  .data-table tbody tr {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    padding: 12px 14px;
+    background: var(--surface);
+  }
+  .data-table tbody tr.row-in-prod { border-left: 4px solid var(--blue); }
+  .data-table tbody tr.row-overdue  { border-left: 4px solid var(--red); }
+  .data-table tbody tr.row-done     { border-left: 4px solid var(--green); }
+  .data-table tbody tr.row-pending  { border-left: 4px solid var(--amber); }
+
+  .data-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border: none;
+    font-size: 13px;
+  }
+
+  .data-table td::before {
+    content: attr(data-label);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-hint);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+    margin-right: 10px;
+  }
+
+  .data-table td:first-child { border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 5px; }
+
+  .progress-cell { flex-direction: column; align-items: flex-end; }
+  .progress-bg { width: 100px; }
+
+  .row-actions { justify-content: flex-end; }
+
+  /* Summary cards 2x2 en mobile */
+  .summary-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* Gantt en mobile — scroll horizontal */
+  .gantt-wrap { padding: 0.75rem; }
+  .gantt { min-width: 600px; }
+  .gantt-row-info { width: 120px; }
+  .gr-name { font-size: 12px; }
+  .gr-chapa { font-size: 10px; }
+  .gantt-label-col { width: 120px; }
+  .gantt-end-label { display: none; }
+}
+
+@media (max-width: 480px) {
+  .btn-nuevo span, .btn-nuevo { font-size: 12px; padding: 7px 12px; }
+  .filter-select { font-size: 12px; }
+  .scard-val { font-size: 26px; }
+}
