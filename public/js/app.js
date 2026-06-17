@@ -30,12 +30,25 @@ async function loadConfig() {
 /* ── LOAD ────────────────────────────── */
 async function loadAll() {
   try {
-    const [rt, rp, rc] = await Promise.all([
-      fetch('/api/trailers'), fetch('/api/panol'), fetch('/api/calidad')
+    const [rt, rp, rc, ra] = await Promise.all([
+      fetch('/api/trailers'), fetch('/api/panol'), fetch('/api/calidad'),
+      fetch('/api/tareas-avance')
     ])
     data.trailers = await rt.json()
     data.panol    = await rp.json()
     data.calidad  = await rc.json()
+
+    // Volcar el avance de órdenes guardado en Supabase a ordenLocal
+    try {
+      const avance = await ra.json()
+      if (Array.isArray(avance)) {
+        Object.keys(ordenLocal).forEach(k => delete ordenLocal[k])
+        avance.forEach(a => {
+          if (a.hecha) ordenLocal[ordKey(a.trailer_id, a.grupo, a.orden)] = true
+        })
+      }
+    } catch (e) { /* sin avance persistido todavía */ }
+
     setStatus(true)
     renderAll()
   } catch(e) {
@@ -566,15 +579,13 @@ async function toggleOrden(trailerId, grupo, orden) {
   const k = ordKey(trailerId, grupo, orden)
   ordenLocal[k] = !ordenLocal[k]
   renderOrdenesDetalle()
-  // Persistencia opcional — activar con tabla `tareas_avance` en Supabase.
-  /*
+  // Persistir en Supabase (tabla tareas_avance)
   try {
     await fetch('/api/tareas-avance', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ trailer_id: trailerId, grupo, orden, hecha: ordenLocal[k] })
     })
   } catch (e) { toast('No se pudo guardar el avance', 'error') }
-  */
 }
 
 /* ════════════════════════════════════════════════════════════
