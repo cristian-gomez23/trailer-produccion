@@ -556,14 +556,26 @@ function renderOrdenesDetalle() {
         </div>`
     }).join('')
 
+    const totalOrd = g.ordenes.length
+    const hechasG = g.ordenes.filter(o => ordenCumplida(t.id, g.grupo, o.orden)).length
+    const todasG = totalOrd > 0 && hechasG === totalOrd
+    const algunaG = hechasG > 0 && hechasG < totalOrd
+
     return `
-      <div class="ord-group">
-        <div class="ord-group-head">
+      <details class="ord-group" open>
+        <summary class="ord-group-head">
+          <button class="ord-check ord-check-group ${todasG ? 'checked' : ''} ${algunaG ? 'partial' : ''}"
+            onclick="event.preventDefault(); event.stopPropagation(); toggleGrupo(${t.id}, ${g.grupo})"
+            title="${todasG ? 'Desmarcar grupo' : 'Marcar todo el grupo'}" aria-label="Marcar todas las órdenes del grupo">
+            <i class="ti ti-${todasG ? 'check' : (algunaG ? 'minus' : 'check')}"></i>
+          </button>
           <span class="ord-group-name">Grupo ${g.grupo} · ${g.gdesc || ''}</span>
+          <span class="ord-group-progress">${hechasG}/${totalOrd}</span>
           <span class="ord-group-qty">×${g.qty}</span>
-        </div>
+          <i class="ti ti-chevron-down ord-group-chev" aria-hidden="true"></i>
+        </summary>
         ${ordenes}
-      </div>`
+      </details>`
   }).join('')
 
   det.innerHTML = `
@@ -573,6 +585,33 @@ function renderOrdenesDetalle() {
     </div>
     ${cards}
     ${body}`
+}
+
+/* Marca o desmarca TODAS las órdenes de un grupo del trailer.
+   Si todas están hechas → las desmarca; si no → las marca todas. */
+async function toggleGrupo(trailerId, grupo) {
+  const t = data.trailers.find(x => x.id === trailerId)
+  if (!t) return
+  const groups = ordenesForTipo(t.tipologia)
+  if (!groups) return
+  const g = groups.find(gr => gr.grupo === grupo)
+  if (!g) return
+
+  const todas = g.ordenes.every(o => ordenCumplida(trailerId, grupo, o.orden))
+  const nuevo = !todas   // si estaban todas → desmarcar; si no → marcar todas
+
+  g.ordenes.forEach(o => { ordenLocal[ordKey(trailerId, grupo, o.orden)] = nuevo })
+  renderOrdenesDetalle()
+
+  // Persistir cada orden del grupo en Supabase
+  try {
+    await Promise.all(g.ordenes.map(o =>
+      fetch('/api/tareas-avance', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trailer_id: trailerId, grupo, orden: o.orden, hecha: nuevo })
+      })
+    ))
+  } catch (e) { toast('No se pudo guardar el avance del grupo', 'error') }
 }
 
 async function toggleOrden(trailerId, grupo, orden) {
