@@ -489,3 +489,18 @@
   padding: 1px 6px; border-radius: 10px; margin-left: 6px;
 }
 .cotiz-qty { font-size: 13px; font-weight: 600; color: var(--mo-blue); flex-shrink: 0; }
+
+/* Corte / previo en las líneas de material de Órdenes */
+.mat-corte {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 10px; color: var(--mo-blue);
+  background: var(--mo-blue-soft); border: 1px solid var(--mo-blue-soft);
+  padding: 1px 6px; border-radius: 5px; margin-left: 6px; white-space: nowrap;
+}
+.mat-previo {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 10px; color: var(--mo-amber);
+  background: #fef3c7; padding: 1px 6px; border-radius: 5px; margin-left: 4px; white-space: nowrap;
+}
+.ord-mat-reproc { opacity: .72; }
+.ord-mat-reproc .mat-cant { color: var(--mo-text-ter); }

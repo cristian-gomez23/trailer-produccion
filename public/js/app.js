@@ -529,9 +529,9 @@ function renderOrdenesDetalle() {
       const done = ordenCumplida(t.id, g.grupo, o.orden)
       const mats = o.materiales.length
         ? `<table class="ord-mat-table"><tbody>
-            ${o.materiales.map(m => `<tr>
+            ${o.materiales.map(m => `<tr class="${m.compra ? '' : 'ord-mat-reproc'}">
               <td class="mat-cod">#${m.cod}</td>
-              <td class="mat-name">${m.mat || '<span style="color:var(--text-ter,#9ca3af)">(sin descripción)</span>'}</td>
+              <td class="mat-name">${m.mat || '<span style="color:var(--text-ter,#9ca3af)">(sin descripción)</span>'}${m.corte ? ` <span class="mat-corte">${m.corte}</span>` : ''}${m.previo ? ` <span class="mat-previo" title="Viene de ${m.previo} — no se compra de nuevo"><i class="ti ti-arrow-back-up" aria-hidden="true"></i> ${m.previo}</span>` : ''}</td>
               <td class="mat-cant">${fmtCant(m.cant)} <span class="mat-un">${m.un || ''}</span></td>
             </tr>`).join('')}
           </tbody></table>`
@@ -780,6 +780,7 @@ function renderPlanResult() {
         ordAgg[key].cant += factor
         ordAgg[key].horas += (o.horas || 0) * factor
         o.materiales.forEach(m => {
+          if (!m.compra) return   // reproceso: no inflar la compra
           if (!matAgg[m.cod]) matAgg[m.cod] = { cod: m.cod, mat: m.mat, un: m.un, cant: 0 }
           matAgg[m.cod].cant += (m.cant || 0) * factor
         })
@@ -865,6 +866,7 @@ function renderCotizResult() {
     const key = o.cod + '·' + t.nombre
     ordAgg[key] = { cod: o.cod, tarea: `${o.tarea} (${t.nombre})`, sector: o.sector, horas: (o.horas||0)*factor, cant: factor }
     o.materiales.forEach(m => {
+      if (!m.compra) return   // reproceso: no inflar la compra
       if (!matAgg[m.cod]) matAgg[m.cod] = { cod: m.cod, mat: m.mat, un: m.un, cant: 0 }
       matAgg[m.cod].cant += (m.cant || 0) * factor
     })
@@ -910,7 +912,7 @@ function buildResultHtml(nTrailers, ordAgg, matAgg, opts = {}) {
 
   const materialesHtml = `
     <details class="plan-details" ${opts.matOpen ? 'open' : ''}>
-      <summary class="plan-section-title"><i class="ti ti-package" aria-hidden="true"></i> Materiales necesarios (${matList.length}) <i class="ti ti-chevron-down plan-chev" aria-hidden="true"></i></summary>
+      <summary class="plan-section-title"><i class="ti ti-package" aria-hidden="true"></i> Materia prima a comprar (${matList.length}) <i class="ti ti-chevron-down plan-chev" aria-hidden="true"></i></summary>
       <table class="mat-table plan-mat-table"><tbody>
         ${matList.map(m => `<tr>
           <td class="mat-cod">#${m.cod}</td>
