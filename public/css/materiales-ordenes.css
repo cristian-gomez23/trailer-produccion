@@ -420,3 +420,56 @@
 .plan-chev { margin-left: auto; transition: transform .15s; }
 .plan-details[open] .plan-chev { transform: rotate(180deg); }
 .plan-mat-table td { padding: 7px 14px; }
+
+/* ════════════════════════════════════════════════════════════
+   MATERIALES — sub-tabs, toggle y sub-vista Cotizar
+   ════════════════════════════════════════════════════════════ */
+.mat-subtabs {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 16px; flex-wrap: wrap;
+}
+.mat-subtab {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; padding: 7px 14px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--mo-border); background: var(--mo-bg); color: var(--mo-text-sec);
+}
+.mat-subtab.on { background: var(--mo-blue); border-color: var(--mo-blue); color: #fff; font-weight: 500; }
+.mat-toggle {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--mo-text-sec); cursor: pointer;
+}
+.mat-toggle input { width: 15px; height: 15px; cursor: pointer; }
+
+.plan-empty-chips { font-size: 13px; color: var(--mo-text-ter); font-style: italic; }
+
+/* Cotizar */
+.cotiz-intro { font-size: 13px; color: var(--mo-text-sec); margin-bottom: 10px; line-height: 1.5; }
+.cotiz-toolbar { margin-bottom: 12px; }
+.cotiz-trailer {
+  border: 1px solid var(--mo-border); border-radius: 10px;
+  overflow: hidden; margin-bottom: 8px;
+}
+.cotiz-trailer summary {
+  cursor: pointer; padding: 10px 14px; list-style: none;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 500; color: var(--mo-text);
+  background: var(--mo-bg-soft);
+}
+.cotiz-trailer summary::-webkit-details-marker { display: none; }
+.cotiz-trailer .plan-chev { margin-left: auto; }
+.cotiz-trailer[open] .plan-chev { transform: rotate(180deg); }
+
+.cotiz-list { background: var(--mo-bg); }
+.cotiz-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px; border-top: 1px solid var(--mo-border); cursor: pointer;
+}
+.cotiz-row:hover { background: var(--mo-bg-soft); }
+.cotiz-row.on { background: var(--mo-blue-soft); }
+.cotiz-row input { width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+.cotiz-name { flex: 1; min-width: 0; font-size: 13px; }
+.cotiz-comp {
+  font-size: 10px; color: var(--mo-green); background: #e2efda;
+  padding: 1px 6px; border-radius: 10px; margin-left: 6px;
+}
+.cotiz-qty { font-size: 13px; font-weight: 600; color: var(--mo-blue); flex-shrink: 0; }

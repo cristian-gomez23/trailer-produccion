@@ -578,18 +578,20 @@ async function toggleOrden(trailerId, grupo, orden) {
 }
 
 /* ════════════════════════════════════════════════════════════
-   MATERIALES — planificación agregada de la producción.
-   Filtros combinables: rango de fechas (solape) + selección de trailers.
-   Muestra las órdenes a ejecutar (cant × trailers) y, en desplegable,
-   los materiales totales necesarios.
+   MATERIALES — dos sub-vistas:
+   · Planificación: trailers (acotados por fechas) → órdenes × cantidad
+   · Cotizar órdenes: selección de órdenes sueltas de cualquier trailer
+   Toggle "incluir completadas" aplica a ambas (por defecto las excluye).
    ════════════════════════════════════════════════════════════ */
 
-let planDesde = ''     // 'YYYY-MM-DD'
+let matSubview = 'plan'        // 'plan' | 'cotizar'
+let planDesde = ''
 let planHasta = ''
-let planSel = null     // Set de ids seleccionados, o null = todos los del rango
+let planSel = null             // Set de ids de trailers, o null = autollenar
+let incluirCompletadas = false // toggle
+let cotizSel = {}              // { 'trailerId:grupo:orden': true } órdenes elegidas para cotizar
 
 function planTrailersDisponibles() {
-  // Trailers activos con tipología (los planificables)
   return data.trailers.filter(t => !t.finalizado && t.tipologia)
 }
 
@@ -606,10 +608,14 @@ function planSolapa(t) {
   return true
 }
 
-function planTrailersEnPlan() {
-  let lista = planTrailersDisponibles().filter(planSolapa)
-  if (planSel) lista = lista.filter(t => planSel.has(t.id))
-  return lista
+/* Trailers que entran al rango de fechas (los chips se acotan a esto) */
+function planTrailersEnRango() {
+  return planTrailersDisponibles().filter(planSolapa)
+}
+
+/* ¿La orden está completada? (tildada en la pestaña Órdenes) */
+function ordenEstaCompletada(trailerId, grupo, orden) {
+  return !!ordenLocal[ordKey(trailerId, grupo, orden)]
 }
 
 function renderMateriales() {
@@ -621,35 +627,57 @@ function renderMateriales() {
       <p>No se cargó el catálogo (ordenes-data.js).</p></div>`
     return
   }
-
-  const disp = planTrailersDisponibles()
-  if (!disp.length) {
+  if (!planTrailersDisponibles().length) {
     cont.innerHTML = `<div class="empty-state"><i class="ti ti-package"></i>
       <p>Ningún trailer activo tiene tipología asignada para planificar.</p></div>`
     return
   }
 
-  if (planSel === null) planSel = new Set(disp.map(t => t.id))
+  const tabs = `
+    <div class="mat-subtabs">
+      <button class="mat-subtab ${matSubview==='plan'?'on':''}" onclick="matSubview='plan'; renderMateriales()"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Planificación</button>
+      <button class="mat-subtab ${matSubview==='cotizar'?'on':''}" onclick="matSubview='cotizar'; renderMateriales()"><i class="ti ti-checklist" aria-hidden="true"></i> Cotizar órdenes</button>
+      <label class="mat-toggle">
+        <input type="checkbox" ${incluirCompletadas?'checked':''} onchange="incluirCompletadas=this.checked; renderMateriales()"/>
+        Incluir completadas
+      </label>
+    </div>`
 
-  const chips = disp.map(t => {
+  cont.innerHTML = tabs + `<div id="mat-sub"></div>`
+  if (matSubview === 'plan') renderPlanificacion()
+  else renderCotizar()
+}
+
+/* ─────────────── SUB-VISTA: PLANIFICACIÓN ─────────────── */
+function renderPlanificacion() {
+  const sub = document.getElementById('mat-sub')
+  if (!sub) return
+
+  const enRango = planTrailersEnRango()
+  // Si planSel es null, o quedó con ids fuera de rango, lo reseteo a "todos los del rango"
+  if (planSel === null) planSel = new Set(enRango.map(t => t.id))
+  // Limpiar selección de ids que ya no están en rango
+  planSel = new Set([...planSel].filter(id => enRango.find(t => t.id === id)))
+
+  const chips = enRango.length ? enRango.map(t => {
     const on = planSel.has(t.id)
     return `<button class="plan-chip ${on ? 'on' : ''}" onclick="togglePlanTrailer(${t.id})">
       ${on ? '<i class="ti ti-check" aria-hidden="true"></i> ' : ''}${t.nombre} · ${t.tipologia}
     </button>`
-  }).join('')
+  }).join('') : `<span class="plan-empty-chips">Ningún trailer en este rango de fechas</span>`
 
-  cont.innerHTML = `
+  sub.innerHTML = `
     <div class="plan-filters">
       <div class="plan-filter-row">
         <label>Desde</label>
-        <input type="date" id="plan-desde" value="${planDesde}" onchange="planDesde=this.value; renderMaterialesPlan()"/>
+        <input type="date" value="${planDesde}" onchange="planDesde=this.value; planSel=null; renderPlanificacion()"/>
         <label>Hasta</label>
-        <input type="date" id="plan-hasta" value="${planHasta}" onchange="planHasta=this.value; renderMaterialesPlan()"/>
-        <button class="plan-clear" onclick="planDesde=''; planHasta=''; renderMateriales()">Limpiar fechas</button>
+        <input type="date" value="${planHasta}" onchange="planHasta=this.value; planSel=null; renderPlanificacion()"/>
+        <button class="plan-clear" onclick="planDesde=''; planHasta=''; planSel=null; renderPlanificacion()">Limpiar fechas</button>
       </div>
       <div class="plan-trailers">
         <div class="plan-trailers-head">
-          <span>Trailers a producir</span>
+          <span>Trailers a producir ${enRango.length ? `(${enRango.length} en rango)` : ''}</span>
           <span>
             <button class="plan-mini" onclick="planSelAll(true)">Todos</button>
             <button class="plan-mini" onclick="planSelAll(false)">Ninguno</button>
@@ -659,53 +687,48 @@ function renderMateriales() {
       </div>
     </div>
     <div id="plan-result"></div>`
-  renderMaterialesPlan()
+  renderPlanResult()
 }
 
 function togglePlanTrailer(id) {
   if (!planSel) planSel = new Set()
   if (planSel.has(id)) planSel.delete(id); else planSel.add(id)
-  // refrescar chips + resultado
-  renderMateriales()
+  renderPlanificacion()
 }
 function planSelAll(all) {
-  const disp = planTrailersDisponibles()
-  planSel = all ? new Set(disp.map(t => t.id)) : new Set()
-  renderMateriales()
+  const enRango = planTrailersEnRango()
+  planSel = all ? new Set(enRango.map(t => t.id)) : new Set()
+  renderPlanificacion()
 }
 
-function renderMaterialesPlan() {
+function renderPlanResult() {
   const res = document.getElementById('plan-result')
   if (!res) return
-  const enPlan = planTrailersEnPlan()
+  const enPlan = planTrailersEnRango().filter(t => planSel.has(t.id))
 
   if (!enPlan.length) {
     res.innerHTML = `<div class="empty-state"><i class="ti ti-calendar-off"></i>
-      <p>No hay trailers en el rango/selección elegidos.</p></div>`
+      <p>Seleccioná al menos un trailer para planificar.</p></div>`
     return
   }
 
-  // Cuántos trailers de cada tipología
+  const ordAgg = {}, matAgg = {}
   const porTipo = {}
   enPlan.forEach(t => { porTipo[t.tipologia] = (porTipo[t.tipologia] || 0) + 1 })
 
-  // Agregación de ÓRDENES: clave cod → {tarea, sector, count}
-  // count = sum sobre tipologías (qty del grupo × nº trailers de esa tipología)
-  const ordenAgg = {}   // cod -> {tarea, sector, horas, cant}
-  const matAgg = {}     // cod -> {mat, un, cant}
-
-  Object.keys(porTipo).forEach(tp => {
-    const nTrailers = porTipo[tp]
-    const groups = ordenesForTipo(tp)
+  // Recorremos por trailer (no por tipología) para poder excluir órdenes
+  // completadas de ESE trailer puntual.
+  enPlan.forEach(t => {
+    const groups = ordenesForTipo(t.tipologia)
     if (!groups) return
     groups.forEach(g => {
-      const factor = g.qty * nTrailers     // veces que se ejecuta cada orden del grupo
       g.ordenes.forEach(o => {
+        if (!incluirCompletadas && ordenEstaCompletada(t.id, g.grupo, o.orden)) return
+        const factor = g.qty   // veces que se ejecuta la orden en este trailer
         const key = o.cod
-        if (!ordenAgg[key]) ordenAgg[key] = { cod: o.cod, tarea: o.tarea, sector: o.sector, horas: 0, cant: 0 }
-        ordenAgg[key].cant += factor
-        ordenAgg[key].horas += (o.horas || 0) * factor
-        // materiales de la orden × factor
+        if (!ordAgg[key]) ordAgg[key] = { cod: o.cod, tarea: o.tarea, sector: o.sector, horas: 0, cant: 0 }
+        ordAgg[key].cant += factor
+        ordAgg[key].horas += (o.horas || 0) * factor
         o.materiales.forEach(m => {
           if (!matAgg[m.cod]) matAgg[m.cod] = { cod: m.cod, mat: m.mat, un: m.un, cant: 0 }
           matAgg[m.cod].cant += (m.cant || 0) * factor
@@ -714,25 +737,112 @@ function renderMaterialesPlan() {
     })
   })
 
-  const ordenList = Object.values(ordenAgg).sort((a, b) => a.cod.localeCompare(b.cod))
+  res.innerHTML = buildResultHtml(enPlan.length, ordAgg, matAgg, {
+    resumen: Object.keys(porTipo).sort().map(tp => `${porTipo[tp]}× Tip. ${tp}`).join('  ·  ')
+  })
+}
+
+/* ─────────────── SUB-VISTA: COTIZAR ÓRDENES ─────────────── */
+function renderCotizar() {
+  const sub = document.getElementById('mat-sub')
+  if (!sub) return
+
+  const trailers = planTrailersDisponibles()
+
+  const listas = trailers.map(t => {
+    const groups = ordenesForTipo(t.tipologia)
+    if (!groups) return ''
+    const filas = groups.flatMap(g => g.ordenes
+      .filter(o => incluirCompletadas || !ordenEstaCompletada(t.id, g.grupo, o.orden))
+      .map(o => {
+        const k = ordKey(t.id, g.grupo, o.orden)
+        const on = !!cotizSel[k]
+        const comp = ordenEstaCompletada(t.id, g.grupo, o.orden)
+        return `
+          <label class="cotiz-row ${on?'on':''}">
+            <input type="checkbox" ${on?'checked':''} onchange="toggleCotiz('${k}')"/>
+            <span class="ord-task-cod">${o.cod}</span>
+            <span class="cotiz-name">${o.tarea}${comp?' <span class="cotiz-comp">completada</span>':''}</span>
+            <span class="ord-chip ord-chip-sector">${o.sector||'—'}</span>
+            <span class="cotiz-qty">×${g.qty}</span>
+          </label>`
+      })).join('')
+    if (!filas) return ''
+    return `
+      <details class="cotiz-trailer">
+        <summary><i class="ti ti-truck" aria-hidden="true"></i> ${t.nombre} · Tipología ${t.tipologia} <i class="ti ti-chevron-down plan-chev" aria-hidden="true"></i></summary>
+        <div class="cotiz-list">${filas}</div>
+      </details>`
+  }).join('')
+
+  sub.innerHTML = `
+    <div class="cotiz-intro">Elegí órdenes de cualquier trailer para cotizar el material. Se suma la cantidad de cada orden × las veces que su grupo entra en ese trailer.</div>
+    <div class="cotiz-toolbar">
+      <button class="plan-mini" onclick="cotizSel={}; renderCotizar()">Limpiar selección</button>
+    </div>
+    <div class="cotiz-trailers">${listas || '<div class="empty-state"><p>No hay órdenes disponibles.</p></div>'}</div>
+    <div id="cotiz-result"></div>`
+  renderCotizResult()
+}
+
+function toggleCotiz(k) {
+  if (cotizSel[k]) delete cotizSel[k]; else cotizSel[k] = true
+  renderCotizar()
+}
+
+function renderCotizResult() {
+  const res = document.getElementById('cotiz-result')
+  if (!res) return
+  const claves = Object.keys(cotizSel)
+  if (!claves.length) {
+    res.innerHTML = `<div class="empty-state"><i class="ti ti-checklist"></i>
+      <p>Seleccioná órdenes para ver el material a cotizar.</p></div>`
+    return
+  }
+
+  const ordAgg = {}, matAgg = {}
+  claves.forEach(k => {
+    const [trailerId, grupo, orden] = k.split(':').map(Number)
+    const t = data.trailers.find(x => x.id === trailerId)
+    if (!t) return
+    const groups = ordenesForTipo(t.tipologia)
+    if (!groups) return
+    const g = groups.find(gr => gr.grupo === grupo)
+    if (!g) return
+    const o = g.ordenes.find(or => or.orden === orden)
+    if (!o) return
+    const factor = g.qty
+    const key = o.cod + '·' + t.nombre
+    ordAgg[key] = { cod: o.cod, tarea: `${o.tarea} (${t.nombre})`, sector: o.sector, horas: (o.horas||0)*factor, cant: factor }
+    o.materiales.forEach(m => {
+      if (!matAgg[m.cod]) matAgg[m.cod] = { cod: m.cod, mat: m.mat, un: m.un, cant: 0 }
+      matAgg[m.cod].cant += (m.cant || 0) * factor
+    })
+  })
+
+  res.innerHTML = buildResultHtml(null, ordAgg, matAgg, {
+    resumen: `${claves.length} órdenes seleccionadas`,
+    matOpen: true
+  })
+}
+
+/* ─────────────── Render compartido del resultado ─────────────── */
+function buildResultHtml(nTrailers, ordAgg, matAgg, opts = {}) {
+  const ordenList = Object.values(ordAgg).sort((a, b) => a.cod.localeCompare(b.cod))
   const matList = Object.values(matAgg).filter(m => m.cant > 0)
     .sort((a, b) => (a.mat || '').localeCompare(b.mat || ''))
-
   const totalOrdenes = ordenList.reduce((s, o) => s + o.cant, 0)
   const totalHoras = ordenList.reduce((s, o) => s + o.horas, 0)
-  const resumenTipo = Object.keys(porTipo).sort()
-    .map(tp => `${porTipo[tp]}× Tip. ${tp}`).join('  ·  ')
 
   const cards = `
     <div class="ord-stats">
-      <div class="ord-stat"><span class="ord-stat-val">${enPlan.length}</span><span class="ord-stat-lbl">trailers</span></div>
-      <div class="ord-stat"><span class="ord-stat-val">${Math.round(totalOrdenes)}</span><span class="ord-stat-lbl">órdenes a ejecutar</span></div>
+      ${nTrailers !== null ? `<div class="ord-stat"><span class="ord-stat-val">${nTrailers}</span><span class="ord-stat-lbl">trailers</span></div>` : ''}
+      <div class="ord-stat"><span class="ord-stat-val">${Math.round(totalOrdenes)}</span><span class="ord-stat-lbl">órdenes</span></div>
       <div class="ord-stat"><span class="ord-stat-val">${Math.round(totalHoras)} h</span><span class="ord-stat-lbl">mano de obra</span></div>
       <div class="ord-stat"><span class="ord-stat-val">${matList.length}</span><span class="ord-stat-lbl">materiales</span></div>
     </div>
-    <div class="plan-resumen">${resumenTipo}</div>`
+    ${opts.resumen ? `<div class="plan-resumen">${opts.resumen}</div>` : ''}`
 
-  // ÓRDENES arriba
   const ordenesHtml = `
     <div class="plan-section-title"><i class="ti ti-clipboard-list" aria-hidden="true"></i> Órdenes a ejecutar</div>
     <div class="ord-list">
@@ -748,9 +858,8 @@ function renderMaterialesPlan() {
         </div>`).join('')}
     </div>`
 
-  // MATERIALES en desplegable
   const materialesHtml = `
-    <details class="plan-details">
+    <details class="plan-details" ${opts.matOpen ? 'open' : ''}>
       <summary class="plan-section-title"><i class="ti ti-package" aria-hidden="true"></i> Materiales necesarios (${matList.length}) <i class="ti ti-chevron-down plan-chev" aria-hidden="true"></i></summary>
       <table class="mat-table plan-mat-table"><tbody>
         ${matList.map(m => `<tr>
@@ -761,7 +870,7 @@ function renderMaterialesPlan() {
       </tbody></table>
     </details>`
 
-  res.innerHTML = cards + ordenesHtml + materialesHtml
+  return cards + ordenesHtml + materialesHtml
 }
 
 /* ── GANTT ───────────────────────────── */
