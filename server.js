@@ -19,6 +19,7 @@ app.get('/api/config', (req, res) => {
 
 app.use('/api/trailers', require('./routes/trailers'))
 app.use('/api/settings', require('./routes/settings'))
+app.use('/api/tareas-avance', require('./routes/tareas-avance'))
 
 const makeAreaRouter = require('./routes/area')
 app.use('/api/panol',   makeAreaRouter('panol'))
