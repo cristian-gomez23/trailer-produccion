@@ -6,6 +6,7 @@
   <title>PyG Servicios — Producción de Trailers</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="/css/app.css"/>
+  <link rel="stylesheet" href="/css/materiales-ordenes.css"/>
   <link rel="icon" href="/img/PyG-logo_mini.png" type="image/png"/>
 </head>
 <body>
@@ -77,6 +78,25 @@
             <div class="form-group">
               <label>Chapa / Patente *</label>
               <input type="text" id="t-chapa" class="mono" placeholder="AB 123 CD"/>
+            </div>
+            <div class="form-group">
+              <label>Tipología</label>
+              <select id="t-tipologia">
+                <option value="">— sin asignar —</option>
+                <option value="A">Tipología A</option>
+                <option value="B">Tipología B</option>
+                <option value="C">Tipología C</option>
+                <option value="D">Tipología D</option>
+                <option value="E">Tipología E</option>
+                <option value="F">Tipología F</option>
+                <option value="G">Tipología G</option>
+                <option value="H">Tipología H</option>
+                <option value="I">Tipología I</option>
+                <option value="J">Tipología J</option>
+                <option value="K">Tipología K</option>
+                <option value="L">Tipología L</option>
+                <option value="M">Tipología M</option>
+              </select>
             </div>
             <div class="form-group">
               <label>Fecha inicio producción</label>
@@ -157,6 +177,8 @@
         <div class="tab-view-btns">
           <button class="view-btn active" data-view="trailers-list" onclick="switchView('trailers','list',this)"><i class="ti ti-list"></i> Registros</button>
           <button class="view-btn" data-view="trailers-gantt" onclick="switchView('trailers','gantt',this)"><i class="ti ti-chart-gantt"></i> Tablero</button>
+          <button class="view-btn" data-view="trailers-ordenes" onclick="switchView('trailers','ordenes',this)"><i class="ti ti-clipboard-list"></i> Órdenes</button>
+          <button class="view-btn" data-view="trailers-materiales" onclick="switchView('trailers','materiales',this)"><i class="ti ti-package"></i> Materiales</button>
         </div>
       </div>
 
@@ -165,7 +187,7 @@
         <div class="table-card">
           <table class="data-table" id="trailers-table">
             <thead><tr>
-              <th>CHAPA</th><th>TRAILER</th><th>MODELO</th>
+              <th>CHAPA</th><th>TRAILER</th><th>TIPOLOGÍA</th><th>MODELO</th>
               <th>INICIO</th><th>FIN ESTIMADO</th><th>AVANCE</th><th>ESTADO</th><th>ACCIONES</th>
             </tr></thead>
             <tbody id="trailers-tbody"></tbody>
@@ -180,6 +202,14 @@
       <div id="trailers-gantt" style="display:none">
         <div class="summary-grid" id="trailers-gantt-summary"></div>
         <div class="table-card"><div class="gantt-wrap"><div id="gantt-trailers"></div></div></div>
+      </div>
+
+      <div id="trailers-ordenes" style="display:none">
+        <div class="table-card"><div id="ordenes-body"></div></div>
+      </div>
+
+      <div id="trailers-materiales" style="display:none">
+        <div class="table-card"><div id="materiales-body"></div></div>
       </div>
     </section>
 
@@ -250,6 +280,7 @@
   </main>
 
   <div id="toast" class="toast"></div>
+  <script src="/js/ordenes-data.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

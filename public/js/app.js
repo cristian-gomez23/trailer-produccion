@@ -3,6 +3,12 @@ let data = { trailers: [], panol: [], calidad: [] }
 let activeTab = 'trailers'
 let activeView = { trailers: 'list', panol: 'list', calidad: 'list' }
 
+/* Estado local del check de órdenes (fallback si no hay columna en Supabase) */
+const ordenLocal = {}   // { [trailerId]: true|false }
+
+/* Tipologías válidas (A–M) */
+const TIPOS_VALIDAS = ['A','B','C','D','E','F','G','H','I','J','K','L','M']
+
 /* ── INIT ────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
   loadConfig()
@@ -45,6 +51,8 @@ function renderAll() {
   renderTable('trailers')
   renderTable('panol')
   renderTable('calidad')
+  renderMateriales()
+  renderOrdenes()
   updateHeaderStat()
   if (activeView.trailers === 'gantt') renderGantt('trailers')
   if (activeView.panol    === 'gantt') renderGantt('panol')
@@ -73,15 +81,31 @@ function bindNav() {
       document.getElementById('tab-' + activeTab).classList.add('active')
       // Update button label
       const labels = { trailers: 'Nuevo Trailer', panol: 'Nueva Tarea', calidad: 'Nueva Tarea' }
-      document.getElementById('btn-nuevo-label').textContent = labels[activeTab]
+      document.getElementById('btn-nuevo-label').textContent = labels[activeTab] || 'Nuevo'
     })
   })
 }
 
+/* Vistas de la sección Trailers: list | gantt | ordenes | materiales.
+   Las áreas Pañol/Calidad solo tienen list | gantt. */
 function switchView(area, view, btn) {
   activeView[area] = view
   btn.closest('.tab-view-btns').querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'))
   btn.classList.add('active')
+
+  if (area === 'trailers') {
+    const views = ['list', 'gantt', 'ordenes', 'materiales']
+    views.forEach(v => {
+      const el = document.getElementById('trailers-' + v)
+      if (el) el.style.display = (v === view) ? 'block' : 'none'
+    })
+    if (view === 'gantt')      renderGantt('trailers')
+    if (view === 'ordenes')    renderOrdenes()
+    if (view === 'materiales') renderMateriales()
+    return
+  }
+
+  // Pañol / Calidad: solo list | gantt
   document.getElementById(area + '-list').style.display  = view === 'list'  ? 'block' : 'none'
   document.getElementById(area + '-gantt').style.display = view === 'gantt' ? 'block' : 'none'
   if (view === 'gantt') renderGantt(area)
@@ -96,7 +120,7 @@ function bindForm() {
       clearForm('t')
       document.getElementById('t-inicio').value = hoyCorrecto().toISOString().slice(0,10)
       showModal('trailers')
-    } else {
+    } else if (activeTab === 'panol' || activeTab === 'calidad') {
       const label = activeTab === 'panol' ? 'Pañol' : 'Calidad'
       document.getElementById('form-title-area').textContent = `Nueva Tarea — ${label}`
       document.getElementById('a-edit-id').value = ''
@@ -120,6 +144,8 @@ function clearForm(p) {
   if (p === 't') {
     ['t-nombre','t-modelo','t-chapa','t-inicio','t-fecha'].forEach(id => document.getElementById(id).value = '')
     document.getElementById('t-prio').value = 'normal'
+    const tip = document.getElementById('t-tipologia')
+    if (tip) tip.value = ''
     document.getElementById('t-edit-id').value = ''
   } else {
     ['a-tarea','a-responsable','a-descripcion','a-inicio','a-fecha'].forEach(id => document.getElementById(id).value = '')
@@ -136,9 +162,11 @@ async function saveRecord(area) {
     const chapa  = document.getElementById('t-chapa').value.trim()
     const fecha  = document.getElementById('t-fecha').value
     if (!nombre || !chapa || !fecha) { toast('Completá nombre, chapa y fecha', 'error'); return }
+    const tipEl = document.getElementById('t-tipologia')
     body = { nombre, modelo: document.getElementById('t-modelo').value.trim(),
              chapa, fecha_inicio: document.getElementById('t-inicio').value,
-             fecha_fin: fecha, prioridad: document.getElementById('t-prio').value }
+             fecha_fin: fecha, prioridad: document.getElementById('t-prio').value,
+             tipologia: tipEl ? tipEl.value : '' }
     eid = document.getElementById('t-edit-id').value
     endpoint = '/api/trailers'
   } else {
@@ -178,6 +206,8 @@ function editRecord(area, id) {
     document.getElementById('t-inicio').value  = item.fecha_inicio || ''
     document.getElementById('t-fecha').value   = item.fecha_fin || ''
     document.getElementById('t-prio').value    = item.prioridad || 'normal'
+    const tip = document.getElementById('t-tipologia')
+    if (tip) tip.value = item.tipologia || ''
     document.getElementById('t-edit-id').value = id
     showModal('trailers')
   } else {
@@ -299,7 +329,6 @@ function renderSummary(area) {
   const done = items.filter(i => i.finalizado).length
   const over = items.filter(i => getStatus(i) === 'overdue').length
 
-  const ids = ['trailers','panol','calidad'].includes(area)
   const html = `
     <div class="scard c-total"><div class="scard-label">Total</div><div class="scard-val blue">${tot}</div></div>
     <div class="scard c-prod"><div class="scard-label">En producción</div><div class="scard-val green">${prod}</div></div>
@@ -343,9 +372,13 @@ function renderTable(area) {
       </button>`
 
     if (area === 'trailers') {
+      const tipoHtml = item.tipologia
+        ? `<span class="tipo-badge">${item.tipologia}</span>`
+        : `<span class="tipo-badge tipo-empty" title="Sin tipología asignada">—</span>`
       return `<tr class="row-${st}">
         <td data-label="Chapa"><span class="chapa">${item.chapa}</span></td>
         <td data-label="Trailer"><div class="t-name">${item.nombre}</div>${prioHtml}</td>
+        <td data-label="Tipología">${tipoHtml}</td>
         <td data-label="Modelo" style="color:var(--text-sec)">${item.modelo||'—'}</td>
         <td data-label="Inicio" style="color:var(--text-sec)">${fmtDate(item.fecha_inicio)}</td>
         <td data-label="Fin est." style="font-weight:600">${fmtDate(item.fecha_fin)}</td>
@@ -380,6 +413,355 @@ function renderTable(area) {
       </tr>`
     }
   }).join('')
+}
+
+/* ════════════════════════════════════════════════════════════
+   Catálogo de órdenes con materiales — window.ORDENES
+   (definido en ordenes-data.js). Estructura:
+   ORDENES[TIPO] = [{grupo, gdesc, qty,
+     ordenes:[{orden, cod, tarea, sector, oper, horas,
+       materiales:[{cod, mat, un, cant}]}]}]
+   ════════════════════════════════════════════════════════════ */
+
+function ordenesForTipo(tipo) {
+  if (!tipo || typeof window.ORDENES === 'undefined') return null
+  return window.ORDENES[tipo] || null
+}
+
+function fmtHoras(h) {
+  if (h === null || h === undefined) return '—'
+  if (h >= 1) return (h % 1 === 0 ? h : h.toFixed(1)) + ' h'
+  return Math.round(h * 60) + ' min'
+}
+function fmtCant(c) {
+  if (c === null || c === undefined) return '0'
+  return (c % 1 === 0) ? c : c.toFixed(2)
+}
+
+/* ════════════════════════════════════════════════════════════
+   ÓRDENES — réplica del Excel: Grupo › Orden (F00X) › materiales.
+   El check aplica solo a la orden (la tarea).
+   ════════════════════════════════════════════════════════════ */
+
+let ordSel = null
+function ordKey(trailerId, grupo, orden) { return `${trailerId}:${grupo}:${orden}` }
+function ordenCumplida(trailerId, grupo, orden) { return !!ordenLocal[ordKey(trailerId, grupo, orden)] }
+
+function renderOrdenes() {
+  const cont = document.getElementById('ordenes-body')
+  if (!cont) return
+
+  if (typeof window.ORDENES === 'undefined') {
+    cont.innerHTML = `<div class="empty-state"><i class="ti ti-clipboard-list"></i>
+      <p>No se cargó el catálogo de órdenes (ordenes-data.js).</p></div>`
+    return
+  }
+
+  const activos = data.trailers.filter(t => !t.finalizado)
+  const conTipo = activos.filter(t => t.tipologia)
+  const sinTipo = activos.filter(t => !t.tipologia)
+
+  if (!conTipo.length) {
+    cont.innerHTML = `<div class="empty-state"><i class="ti ti-clipboard-list"></i>
+      <p>Ningún trailer activo tiene tipología asignada.<br>
+      Editá un trailer y asignale una tipología (A–M) para ver sus órdenes de trabajo.</p></div>`
+    return
+  }
+
+  if (ordSel === null || !conTipo.find(t => t.id === ordSel)) ordSel = conTipo[0].id
+
+  const warn = sinTipo.length
+    ? `<span class="mat-warn"><i class="ti ti-alert-triangle"></i> ${sinTipo.length} sin tipología</span>` : ''
+
+  cont.innerHTML = `
+    <div class="mat-toolbar">
+      <label for="ord-trailer">Trailer</label>
+      <select id="ord-trailer" onchange="ordSel = Number(this.value); renderOrdenesDetalle()">
+        ${conTipo.map(t => `<option value="${t.id}" ${t.id===ordSel?'selected':''}>${t.nombre} · Tipología ${t.tipologia}</option>`).join('')}
+      </select>
+      ${warn}
+    </div>
+    <div id="ord-detalle"></div>`
+  renderOrdenesDetalle()
+}
+
+function renderOrdenesDetalle() {
+  const det = document.getElementById('ord-detalle')
+  if (!det) return
+  const t = data.trailers.find(x => x.id === ordSel)
+  if (!t) { det.innerHTML = ''; return }
+
+  const groups = ordenesForTipo(t.tipologia)
+  if (!groups) {
+    det.innerHTML = `<div class="empty-state"><i class="ti ti-help-circle"></i>
+      <p>No hay órdenes cargadas para la tipología ${t.tipologia}.</p></div>`
+    return
+  }
+
+  let nOrd = 0, nHechas = 0, hTotal = 0
+  groups.forEach(g => g.ordenes.forEach(o => {
+    nOrd++; hTotal += (o.horas || 0)
+    if (ordenCumplida(t.id, g.grupo, o.orden)) nHechas++
+  }))
+
+  const cards = `
+    <div class="ord-stats">
+      <div class="ord-stat"><span class="ord-stat-val">${nOrd}</span><span class="ord-stat-lbl">órdenes</span></div>
+      <div class="ord-stat"><span class="ord-stat-val ord-ok">${nHechas}</span><span class="ord-stat-lbl">completadas</span></div>
+      <div class="ord-stat"><span class="ord-stat-val">${fmtHoras(hTotal)}</span><span class="ord-stat-lbl">mano de obra</span></div>
+    </div>`
+
+  const body = groups.map(g => {
+    const ordenes = g.ordenes.map(o => {
+      const done = ordenCumplida(t.id, g.grupo, o.orden)
+      const mats = o.materiales.length
+        ? `<table class="ord-mat-table"><tbody>
+            ${o.materiales.map(m => `<tr>
+              <td class="mat-cod">#${m.cod}</td>
+              <td class="mat-name">${m.mat || '<span style="color:var(--text-ter,#9ca3af)">(sin descripción)</span>'}</td>
+              <td class="mat-cant">${fmtCant(m.cant)} <span class="mat-un">${m.un || ''}</span></td>
+            </tr>`).join('')}
+          </tbody></table>`
+        : `<div class="ord-mat-empty">Sin materiales en esta orden</div>`
+      return `
+        <div class="ord-order ${done ? 'ord-order-done' : ''}">
+          <div class="ord-order-head">
+            <button class="ord-check ${done ? 'checked' : ''}"
+              onclick="toggleOrden(${t.id}, ${g.grupo}, ${o.orden})"
+              title="${done ? 'Desmarcar' : 'Marcar completada'}" aria-label="Marcar orden completada">
+              <i class="ti ti-check"></i>
+            </button>
+            <span class="ord-task-cod">${o.cod || ''}</span>
+            <span class="ord-order-name">${o.tarea}</span>
+            <span class="ord-order-meta">
+              ${o.sector ? `<span class="ord-chip ord-chip-sector" title="Sector">${o.sector}</span>` : ''}
+              ${o.oper ? `<span class="ord-chip" title="Operarios"><i class="ti ti-user" aria-hidden="true"></i> ${o.oper}</span>` : ''}
+              <span class="ord-chip ord-chip-time" title="Tiempo"><i class="ti ti-clock" aria-hidden="true"></i> ${fmtHoras(o.horas)}</span>
+            </span>
+          </div>
+          ${mats}
+        </div>`
+    }).join('')
+
+    return `
+      <div class="ord-group">
+        <div class="ord-group-head">
+          <span class="ord-group-name">Grupo ${g.grupo} · ${g.gdesc || ''}</span>
+          <span class="ord-group-qty">×${g.qty}</span>
+        </div>
+        ${ordenes}
+      </div>`
+  }).join('')
+
+  det.innerHTML = `
+    <div class="mat-detalle-head">
+      <div class="mat-detalle-title">${t.nombre}</div>
+      <div class="mat-detalle-sub">Tipología ${t.tipologia} · órdenes de trabajo con sus materiales</div>
+    </div>
+    ${cards}
+    ${body}`
+}
+
+async function toggleOrden(trailerId, grupo, orden) {
+  const k = ordKey(trailerId, grupo, orden)
+  ordenLocal[k] = !ordenLocal[k]
+  renderOrdenesDetalle()
+  // Persistencia opcional — activar con tabla `tareas_avance` en Supabase.
+  /*
+  try {
+    await fetch('/api/tareas-avance', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trailer_id: trailerId, grupo, orden, hecha: ordenLocal[k] })
+    })
+  } catch (e) { toast('No se pudo guardar el avance', 'error') }
+  */
+}
+
+/* ════════════════════════════════════════════════════════════
+   MATERIALES — planificación agregada de la producción.
+   Filtros combinables: rango de fechas (solape) + selección de trailers.
+   Muestra las órdenes a ejecutar (cant × trailers) y, en desplegable,
+   los materiales totales necesarios.
+   ════════════════════════════════════════════════════════════ */
+
+let planDesde = ''     // 'YYYY-MM-DD'
+let planHasta = ''
+let planSel = null     // Set de ids seleccionados, o null = todos los del rango
+
+function planTrailersDisponibles() {
+  // Trailers activos con tipología (los planificables)
+  return data.trailers.filter(t => !t.finalizado && t.tipologia)
+}
+
+function planSolapa(t) {
+  if (!planDesde && !planHasta) return true
+  const ini = t.fecha_inicio ? parseDate(t.fecha_inicio) : null
+  const fin = t.fecha_fin ? parseDate(t.fecha_fin) : ini
+  if (!ini && !fin) return true
+  const d = planDesde ? parseDate(planDesde) : null
+  const h = planHasta ? parseDate(planHasta) : null
+  const tIni = ini || fin, tFin = fin || ini
+  if (d && tFin < d) return false
+  if (h && tIni > h) return false
+  return true
+}
+
+function planTrailersEnPlan() {
+  let lista = planTrailersDisponibles().filter(planSolapa)
+  if (planSel) lista = lista.filter(t => planSel.has(t.id))
+  return lista
+}
+
+function renderMateriales() {
+  const cont = document.getElementById('materiales-body')
+  if (!cont) return
+
+  if (typeof window.ORDENES === 'undefined') {
+    cont.innerHTML = `<div class="empty-state"><i class="ti ti-package"></i>
+      <p>No se cargó el catálogo (ordenes-data.js).</p></div>`
+    return
+  }
+
+  const disp = planTrailersDisponibles()
+  if (!disp.length) {
+    cont.innerHTML = `<div class="empty-state"><i class="ti ti-package"></i>
+      <p>Ningún trailer activo tiene tipología asignada para planificar.</p></div>`
+    return
+  }
+
+  if (planSel === null) planSel = new Set(disp.map(t => t.id))
+
+  const chips = disp.map(t => {
+    const on = planSel.has(t.id)
+    return `<button class="plan-chip ${on ? 'on' : ''}" onclick="togglePlanTrailer(${t.id})">
+      ${on ? '<i class="ti ti-check" aria-hidden="true"></i> ' : ''}${t.nombre} · ${t.tipologia}
+    </button>`
+  }).join('')
+
+  cont.innerHTML = `
+    <div class="plan-filters">
+      <div class="plan-filter-row">
+        <label>Desde</label>
+        <input type="date" id="plan-desde" value="${planDesde}" onchange="planDesde=this.value; renderMaterialesPlan()"/>
+        <label>Hasta</label>
+        <input type="date" id="plan-hasta" value="${planHasta}" onchange="planHasta=this.value; renderMaterialesPlan()"/>
+        <button class="plan-clear" onclick="planDesde=''; planHasta=''; renderMateriales()">Limpiar fechas</button>
+      </div>
+      <div class="plan-trailers">
+        <div class="plan-trailers-head">
+          <span>Trailers a producir</span>
+          <span>
+            <button class="plan-mini" onclick="planSelAll(true)">Todos</button>
+            <button class="plan-mini" onclick="planSelAll(false)">Ninguno</button>
+          </span>
+        </div>
+        <div class="plan-chips">${chips}</div>
+      </div>
+    </div>
+    <div id="plan-result"></div>`
+  renderMaterialesPlan()
+}
+
+function togglePlanTrailer(id) {
+  if (!planSel) planSel = new Set()
+  if (planSel.has(id)) planSel.delete(id); else planSel.add(id)
+  // refrescar chips + resultado
+  renderMateriales()
+}
+function planSelAll(all) {
+  const disp = planTrailersDisponibles()
+  planSel = all ? new Set(disp.map(t => t.id)) : new Set()
+  renderMateriales()
+}
+
+function renderMaterialesPlan() {
+  const res = document.getElementById('plan-result')
+  if (!res) return
+  const enPlan = planTrailersEnPlan()
+
+  if (!enPlan.length) {
+    res.innerHTML = `<div class="empty-state"><i class="ti ti-calendar-off"></i>
+      <p>No hay trailers en el rango/selección elegidos.</p></div>`
+    return
+  }
+
+  // Cuántos trailers de cada tipología
+  const porTipo = {}
+  enPlan.forEach(t => { porTipo[t.tipologia] = (porTipo[t.tipologia] || 0) + 1 })
+
+  // Agregación de ÓRDENES: clave cod → {tarea, sector, count}
+  // count = sum sobre tipologías (qty del grupo × nº trailers de esa tipología)
+  const ordenAgg = {}   // cod -> {tarea, sector, horas, cant}
+  const matAgg = {}     // cod -> {mat, un, cant}
+
+  Object.keys(porTipo).forEach(tp => {
+    const nTrailers = porTipo[tp]
+    const groups = ordenesForTipo(tp)
+    if (!groups) return
+    groups.forEach(g => {
+      const factor = g.qty * nTrailers     // veces que se ejecuta cada orden del grupo
+      g.ordenes.forEach(o => {
+        const key = o.cod
+        if (!ordenAgg[key]) ordenAgg[key] = { cod: o.cod, tarea: o.tarea, sector: o.sector, horas: 0, cant: 0 }
+        ordenAgg[key].cant += factor
+        ordenAgg[key].horas += (o.horas || 0) * factor
+        // materiales de la orden × factor
+        o.materiales.forEach(m => {
+          if (!matAgg[m.cod]) matAgg[m.cod] = { cod: m.cod, mat: m.mat, un: m.un, cant: 0 }
+          matAgg[m.cod].cant += (m.cant || 0) * factor
+        })
+      })
+    })
+  })
+
+  const ordenList = Object.values(ordenAgg).sort((a, b) => a.cod.localeCompare(b.cod))
+  const matList = Object.values(matAgg).filter(m => m.cant > 0)
+    .sort((a, b) => (a.mat || '').localeCompare(b.mat || ''))
+
+  const totalOrdenes = ordenList.reduce((s, o) => s + o.cant, 0)
+  const totalHoras = ordenList.reduce((s, o) => s + o.horas, 0)
+  const resumenTipo = Object.keys(porTipo).sort()
+    .map(tp => `${porTipo[tp]}× Tip. ${tp}`).join('  ·  ')
+
+  const cards = `
+    <div class="ord-stats">
+      <div class="ord-stat"><span class="ord-stat-val">${enPlan.length}</span><span class="ord-stat-lbl">trailers</span></div>
+      <div class="ord-stat"><span class="ord-stat-val">${Math.round(totalOrdenes)}</span><span class="ord-stat-lbl">órdenes a ejecutar</span></div>
+      <div class="ord-stat"><span class="ord-stat-val">${Math.round(totalHoras)} h</span><span class="ord-stat-lbl">mano de obra</span></div>
+      <div class="ord-stat"><span class="ord-stat-val">${matList.length}</span><span class="ord-stat-lbl">materiales</span></div>
+    </div>
+    <div class="plan-resumen">${resumenTipo}</div>`
+
+  // ÓRDENES arriba
+  const ordenesHtml = `
+    <div class="plan-section-title"><i class="ti ti-clipboard-list" aria-hidden="true"></i> Órdenes a ejecutar</div>
+    <div class="ord-list">
+      ${ordenList.map(o => `
+        <div class="plan-orden-row">
+          <span class="ord-task-cod">${o.cod}</span>
+          <span class="plan-orden-name">${o.tarea}</span>
+          <span class="plan-orden-meta">
+            ${o.sector ? `<span class="ord-chip ord-chip-sector">${o.sector}</span>` : ''}
+            <span class="ord-chip ord-chip-time"><i class="ti ti-clock" aria-hidden="true"></i> ${fmtHoras(o.horas)}</span>
+          </span>
+          <span class="plan-orden-cant">×${Math.round(o.cant)}</span>
+        </div>`).join('')}
+    </div>`
+
+  // MATERIALES en desplegable
+  const materialesHtml = `
+    <details class="plan-details">
+      <summary class="plan-section-title"><i class="ti ti-package" aria-hidden="true"></i> Materiales necesarios (${matList.length}) <i class="ti ti-chevron-down plan-chev" aria-hidden="true"></i></summary>
+      <table class="mat-table plan-mat-table"><tbody>
+        ${matList.map(m => `<tr>
+          <td class="mat-cod">#${m.cod}</td>
+          <td class="mat-name">${m.mat || '<span style="color:var(--text-ter,#9ca3af)">(sin descripción)</span>'}</td>
+          <td class="mat-cant">${fmtCant(m.cant)} <span class="mat-un">${m.un || ''}</span></td>
+        </tr>`).join('')}
+      </tbody></table>
+    </details>`
+
+  res.innerHTML = cards + ordenesHtml + materialesHtml
 }
 
 /* ── GANTT ───────────────────────────── */
@@ -447,7 +829,8 @@ function renderGantt(area) {
       : `${item.responsable || '—'}`
 
     const tooltipLines = area === 'trailers'
-      ? [name, item.modelo ? `Modelo: ${item.modelo}` : null, `Chapa: ${item.chapa}`,
+      ? [name, item.tipologia ? `Tipología: ${item.tipologia}` : null,
+         item.modelo ? `Modelo: ${item.modelo}` : null, `Chapa: ${item.chapa}`,
          item.fecha_inicio ? `Inicio: ${fmtDate(item.fecha_inicio)}` : null,
          `Fin estimado: ${fmtDate(item.fecha_fin)}`, `Estado: ${STATUS_LABEL[st]}`,
          st !== 'pending' ? `Avance: ${prog}%` : null]
