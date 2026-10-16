@@ -17,6 +17,32 @@ app.get('/api/config', (req, res) => {
   })
 })
 
+// Diagnóstico: muestra a qué proyecto de Supabase apunta este deploy
+// y el error COMPLETO (message + code + hint + details) de una query de prueba.
+// El hint de PostgREST lista qué schemas están expuestos en ESE proyecto.
+app.get('/api/diag', async (req, res) => {
+  const supabase = require('./config/supabase')
+
+  let supabase_host = null
+  try { supabase_host = new URL(process.env.SUPABASE_URL).host } catch (e) {}
+
+  const { data, error } = await supabase
+    .from('trailers')
+    .select('id')
+    .limit(1)
+
+  res.json({
+    supabase_host,                                   // ref del proyecto que usa Vercel
+    schema_configurado: 'produccion',
+    anon_key_definida: Boolean(process.env.SUPABASE_ANON_KEY),
+    query_ok: !error,
+    filas: error ? null : (data ? data.length : 0),
+    error: error
+      ? { message: error.message, code: error.code, hint: error.hint, details: error.details }
+      : null
+  })
+})
+
 app.use('/api/trailers', require('./routes/trailers'))
 app.use('/api/settings', require('./routes/settings'))
 app.use('/api/tareas-avance', require('./routes/tareas-avance'))
