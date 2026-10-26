@@ -147,7 +147,7 @@ router.get('/componentes', async (req, res) => {
 })
 
 router.post('/componentes', async (req, res) => {
-  const { componente, codigo, stk_min, stk_max, stk_actual, consumo_mensual } = req.body
+  const { componente, codigo, stk_min, stk_max, stk_actual, consumo_mensual, costo_unitario } = req.body
   if (!componente) return res.status(400).json({ error: 'componente es requerido' })
 
   let actual = num(stk_actual)
@@ -166,7 +166,9 @@ router.post('/componentes', async (req, res) => {
       stk_min: num(stk_min),
       stk_max: num(stk_max),
       stk_actual: actual,
-      consumo_mensual: num(consumo_mensual)
+      consumo_mensual: num(consumo_mensual),
+      // costo manual: solo si se carga (si no, se usa el costo del Excel)
+      costo_unitario: costo_unitario === '' || costo_unitario == null ? null : num(costo_unitario)
     }])
     .select('*, stock_articulos(articulo, costo)')
     .single()
@@ -176,13 +178,15 @@ router.post('/componentes', async (req, res) => {
 })
 
 router.patch('/componentes/:id', async (req, res) => {
-  const permitidos = ['componente', 'codigo', 'stk_min', 'stk_max', 'stk_actual', 'consumo_mensual']
+  const permitidos = ['componente', 'codigo', 'stk_min', 'stk_max', 'stk_actual', 'consumo_mensual', 'costo_unitario']
   const updates = { updated_at: new Date().toISOString() }
   for (const k of permitidos) {
     if (!(k in req.body)) continue
-    if (k === 'componente') updates[k] = String(req.body[k]).trim().toUpperCase()
-    else if (k === 'codigo') updates[k] = req.body[k] || null
-    else updates[k] = num(req.body[k])
+    const v = req.body[k]
+    if (k === 'componente') updates[k] = String(v).trim().toUpperCase()
+    else if (k === 'codigo') updates[k] = v || null
+    else if (k === 'costo_unitario') updates[k] = v === '' || v == null ? null : num(v)
+    else updates[k] = num(v)
   }
 
   // si se vincula un código, toma la cantidad del Excel

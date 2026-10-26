@@ -9,6 +9,9 @@
   --stk-head: #d9d9d9;
 }
 
+/* En la pestaña Stock el contenido usa el 98% del ancho (la tabla es ancha) */
+body:has(#tab-stock.active) .main-content { max-width: 98%; }
+
 .stock-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .stock-meta {
@@ -86,6 +89,71 @@
 }
 /* Fila con seguimiento: marca a la izquierda */
 .stock-table tr.stk-seg td.stk-comp { box-shadow: inset 3px 0 0 var(--blue); }
+
+/* Subtabs + selector de mes */
+.stk-subtabs { padding: 12px 14px 0; }
+.stk-mes-sel {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sec);
+  text-transform: uppercase;
+}
+.stk-mes-sel select {
+  padding: 6px 10px;
+  font: 600 13px var(--font);
+  border: 1.5px solid var(--blue);
+  border-radius: 6px;
+  color: var(--blue-dark);
+  background: var(--blue-light);
+  cursor: pointer;
+  text-transform: none;
+}
+
+/* Mes seleccionado */
+.stock-table th.stk-mes-th { cursor: pointer; }
+.stock-table th.stk-mes-th:hover { background: #c9d6f2; }
+.stock-table th.stk-mes-th small { display: block; font-size: 9px; font-weight: 600; color: var(--text-sec); }
+.stock-table th.mes-sel { background: var(--blue); color: #fff; }
+.stock-table th.mes-sel small { color: rgba(255,255,255,.8); }
+.stock-table td.mes-sel { box-shadow: inset 2px 0 0 var(--blue), inset -2px 0 0 var(--blue); font-weight: 700; }
+
+/* Mes de compra (reposición) */
+.stock-table td.rep { position: relative; }
+.stock-table td.rep::after {
+  content: '';
+  position: absolute;
+  top: 3px; right: 3px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--blue);
+}
+.stk-sw-rep { background: var(--stk-ok); position: relative; }
+.stk-sw-rep::after {
+  content: ''; position: absolute; top: 1px; right: 1px;
+  width: 5px; height: 5px; border-radius: 50%; background: var(--blue);
+}
+
+/* Montos */
+.stock-table td.stk-money { text-align: right; font-variant-numeric: tabular-nums; }
+.stock-table th.stk-money-th { background: #e2e8f0; line-height: 1.15; }
+.stock-table th.stk-money-th small { font-size: 10px; color: var(--blue); }
+.stock-table td.stk-val { background: #f8fafc; }
+.stock-table td.stk-rep { color: var(--text-hint); background: #f8fafc; }
+.stock-table td.stk-rep.on { color: var(--amber-text); background: var(--amber-bg); font-weight: 700; }
+.stock-table td.stk-rep small { display: block; font-size: 10px; font-weight: 400; }
+
+.stock-table tfoot td {
+  background: #eef2f7;
+  border-top: 2px solid #94a3b8;
+  font-size: 13px;
+}
+
+.scard-sub { font-size: 11px; color: var(--text-hint); margin-top: 6px; }
+.stk-scard-money { font-size: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .stk-mas {
   padding: 10px 14px;
