@@ -68,11 +68,12 @@ function stockProyeccion(c, n = 12) {
   return out
 }
 
-/* Unidades a comprar en el mes i (0 si ese mes no hay reposición) */
+/* Unidades a comprar en el mes i: si ese mes el stock queda ≤ STK MIN,
+   se repone hasta STK MAX (STK MAX − stock del mes). 0 si no hace falta. */
 function stockReposicion(c, i, p = stockProyeccion(c)) {
-  if (i < 1 || !(+c.stk_max > 0)) return 0
-  const prev = p[i - 1]
-  return prev <= +c.stk_min ? Math.max(0, +c.stk_max - prev) : 0
+  if (!(+c.stk_max > 0)) return 0
+  const v = p[i]
+  return v <= +c.stk_min ? Math.max(0, +c.stk_max - v) : 0
 }
 
 function stockClase(v, min) { return v < 0 ? 'neg' : (v <= min ? 'low' : 'ok') }
@@ -80,14 +81,17 @@ function stockClase(v, min) { return v < 0 ? 'neg' : (v <= min ? 'low' : 'ok') }
 /* Tiene parámetros cargados (si no, la proyección no tiene sentido) */
 function stockConfigurado(r) { return +r.stk_min > 0 || +r.stk_max > 0 || +r.consumo_mensual > 0 }
 
-/* Costo unitario: manual si se cargó, si no el del Excel */
+/* Costo unitario:
+   · artículos del Excel → SIEMPRE el último precio valorizado importado
+   · componentes manuales (sin código) → costo cargado a mano          */
+function stockArticulo(r) {
+  return r.codigo ? stock.articulos.find(x => x.codigo === r.codigo) : null
+}
 function stockCosto(r) {
-  if (r.costo_unitario !== null && r.costo_unitario !== undefined && r.costo_unitario !== '') return +r.costo_unitario
-  if (r.codigo) {
-    const a = stock.articulos.find(x => x.codigo === r.codigo)
-    if (a) return +a.costo || 0
-    if (r.stock_articulos && r.stock_articulos.costo != null) return +r.stock_articulos.costo
-  }
+  const a = stockArticulo(r)
+  if (a) return +a.costo || 0
+  if (stockCostoManual(r)) return +r.costo_unitario
+  if (r.stock_articulos && r.stock_articulos.costo != null) return +r.stock_articulos.costo
   return 0
 }
 function stockCostoManual(r) {
@@ -159,7 +163,7 @@ function stockFiltrados() {
   return stockConMes(stockFilas()).filter(x => {
     const r = x.r
     if (stockVista === 'seguimiento' && !r.seguimiento) return false
-    if (stockVista === 'reponer' && !(x.repo > 0 || (stockMesSel === 0 && x.conf && x.cant <= +r.stk_min))) return false
+    if (stockVista === 'reponer' && !(x.repo > 0)) return false
     if (!q) return true
     return `${r.componente} ${r.codigo || ''} ${r.articulo || ''}`.toLowerCase().includes(q)
   })
@@ -192,12 +196,12 @@ function renderStock() {
   }
 
   const nSeg  = todas.filter(x => x.r.seguimiento).length
-  const nRepo = todas.filter(x => x.repo > 0 || (stockMesSel === 0 && x.conf && x.cant <= +x.r.stk_min)).length
+  const nRepo = todas.filter(x => x.repo > 0).length
   const subtabs = `
     <div class="mat-subtabs stk-subtabs">
       <button class="mat-subtab ${stockVista==='todos'?'on':''}" onclick="stockVista='todos'; renderStock()"><i class="ti ti-list"></i> Todos (${todas.length})</button>
       <button class="mat-subtab ${stockVista==='seguimiento'?'on':''}" onclick="stockVista='seguimiento'; renderStock()"><i class="ti ti-eye"></i> Con seguimiento (${nSeg})</button>
-      <button class="mat-subtab ${stockVista==='reponer'?'on':''}" onclick="stockVista='reponer'; renderStock()"><i class="ti ti-shopping-cart"></i> ${stockMesSel === 0 ? 'Bajo mínimo' : 'Reponen en ' + mes.corto} (${nRepo})</button>
+      <button class="mat-subtab ${stockVista==='reponer'?'on':''}" onclick="stockVista='reponer'; renderStock()"><i class="ti ti-shopping-cart"></i> A reponer en ${mes.corto} (${nRepo})</button>
       <label class="stk-mes-sel">
         <i class="ti ti-calendar"></i> Mes
         <select onchange="setStockMes(this.value)">
@@ -236,8 +240,8 @@ function renderStock() {
         }).join('')
       : `<td colspan="12" class="stk-sin-conf">Cargá MIN · MAX · CONSUMO para proyectar</td>`
 
-    const costoCell = vinc && !stockCostoManual(r)
-      ? `<td class="lock stk-money" title="Costo del Excel">${fmtMoney(x.costo)}</td>`
+    const costoCell = stockArticulo(r)
+      ? `<td class="lock stk-money" title="Último precio valorizado (Excel)">${fmtMoney(x.costo)}</td>`
       : r.id
         ? `<td class="ed stk-money" data-f="costo_unitario" title="Costo manual">${stockCostoManual(r) ? fmtMoney(x.costo) : '<span style="color:var(--text-hint)">cargar</span>'}</td>`
         : `<td class="stk-money">${fmtMoney(x.costo)}</td>`
@@ -291,9 +295,10 @@ function renderStock() {
     ${mas}
     <div class="stock-legend">
       <span><i class="sw" style="background:var(--stk-ok)"></i>Sobre el mínimo</span>
-      <span><i class="sw" style="background:var(--stk-low)"></i>En o bajo el mínimo → se repone al máximo el mes siguiente</span>
+      <span><i class="sw" style="background:var(--stk-low)"></i>En o bajo el mínimo → se compra hasta el máximo (gasto en ese mes)</span>
       <span><i class="sw" style="background:var(--stk-neg)"></i>Negativo</span>
       <span><i class="sw stk-sw-rep"></i>Mes de compra</span>
+      <span>Montos al último precio valorizado del Excel</span>
       <span style="color:var(--blue)"><i class="ti ti-link"></i> Dato del Excel</span>
       <span>Doble clic en MIN · MAX · CONSUMO para editar · clic en un mes para seleccionarlo</span>
     </div>`
@@ -309,9 +314,9 @@ function renderStockSummary(todas, mes) {
   const valor = todas.reduce((s, x) => s + x.valor, 0)
   const repoX = todas.filter(x => x.repoMonto > 0)
   const repo  = repoX.reduce((s, x) => s + x.repoMonto, 0)
-  // gasto acumulado desde el mes actual hasta el seleccionado
+  // gasto acumulado desde el mes actual hasta el seleccionado (inclusive)
   let acum = 0
-  for (let i = 1; i <= stockMesSel; i++) {
+  for (let i = 0; i <= stockMesSel; i++) {
     acum += stockConMes(stockFilas().filter(r => stockConfigurado(r)), i).reduce((s, x) => s + x.repoMonto, 0)
   }
   const sinCosto = seg.filter(x => !x.costo).length
@@ -460,7 +465,9 @@ function stockCodigoChange() {
     hint.innerHTML = `<b>${escStk(a.articulo)}</b> — stock en Excel: <b>${fmtNum(a.cantidad)}</b> · costo ${fmtMoney(a.costo)}`
     act.value = a.cantidad
     act.disabled = true
-    costo.placeholder = `Excel: ${fmtMoney(a.costo)} (dejar vacío para usarlo)`
+    costo.value = ''
+    costo.disabled = true
+    costo.placeholder = `Último precio del Excel: ${fmtMoney(a.costo)}`
     const comp = document.getElementById('s-componente')
     if (!comp.value) comp.value = a.articulo
   } else {
@@ -468,6 +475,7 @@ function stockCodigoChange() {
       ? 'Ese código no está en el último Excel importado'
       : 'Opcional. Si lo vinculás, el STK ACTUAL y el costo se actualizan con cada importación.'
     act.disabled = false
+    costo.disabled = false
     costo.placeholder = 'Costo por unidad'
   }
 }
