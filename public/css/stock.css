@@ -1,0 +1,115 @@
+/* ════════════════════════════════════════════════════════════
+   STOCK — tabla de componentes con proyección mensual
+   Colores de celdas iguales a la planilla Excel del modelo
+   ════════════════════════════════════════════════════════════ */
+:root {
+  --stk-ok:   #c6e0b4;
+  --stk-low:  #f4b183;
+  --stk-neg:  #ff8a80;
+  --stk-head: #d9d9d9;
+}
+
+.stock-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.stock-meta {
+  font-size: 12px;
+  color: var(--text-sec);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stock-scroll { overflow-x: auto; }
+
+.stock-table {
+  width: 100%;
+  min-width: 1250px;
+  border-collapse: collapse;
+  font-family: var(--font);
+  font-size: 13px;
+}
+
+.stock-table th,
+.stock-table td {
+  border: 1px solid #b7b7b7;
+  padding: 6px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.stock-table thead th {
+  background: var(--stk-head);
+  color: #111;
+  font-weight: 700;
+  font-size: 12px;
+  position: sticky;
+  top: 0;
+}
+
+.stock-table thead th.mes-actual { background: #c9d6f2; }
+
+.stock-table td.stk-comp { text-align: left; min-width: 200px; }
+.stk-comp-name { font-weight: 700; color: var(--text); }
+.stk-comp-cod  { font-size: 11px; color: var(--text-hint); margin-top: 2px; }
+.stk-comp-cod .chapa { font-size: 10px; padding: 1px 6px; margin-right: 4px; }
+
+.stock-table td.ok  { background: var(--stk-ok); }
+.stock-table td.low { background: var(--stk-low); }
+.stock-table td.neg { background: var(--stk-neg); font-weight: 700; }
+
+.stock-table td.ed { cursor: text; }
+.stock-table td.ed:hover { outline: 2px solid var(--blue-mid); outline-offset: -2px; }
+.stock-table td.ed input {
+  width: 64px;
+  text-align: center;
+  font: inherit;
+  padding: 2px 4px;
+  border: 1.5px solid var(--blue-mid);
+  border-radius: 4px;
+  outline: none;
+}
+.stock-table td.lock { color: var(--blue); font-weight: 700; }
+.stock-table td.lock i { font-size: 11px; opacity: .7; margin-left: 2px; }
+
+.stock-table tbody tr:hover td.stk-comp,
+.stock-table tbody tr:hover td.ed,
+.stock-table tbody tr:hover td.lock { background: #f8fafc; }
+
+.stock-table td.stk-acc .row-actions { justify-content: center; }
+
+.stock-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-sec);
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  background: #f8fafc;
+}
+.stock-legend i.sw {
+  display: inline-block;
+  width: 13px; height: 13px;
+  border: 1px solid #999;
+  vertical-align: -2px;
+  margin-right: 4px;
+}
+
+/* Resultado de importación */
+.stk-res p { margin-bottom: 8px; font-size: 13px; }
+.stk-res-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0 10px; }
+.stk-res-table th, .stk-res-table td { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: right; }
+.stk-res-table th:first-child, .stk-res-table td:first-child { text-align: left; }
+.stk-res-table th { font-size: 11px; color: var(--text-sec); text-transform: uppercase; }
+.stk-res-warn { color: var(--amber-text); background: var(--amber-bg); padding: 8px 10px; border-radius: 6px; font-size: 12px; }
+.stk-res-scroll { max-height: 300px; overflow: auto; }
+
+.form-hint { font-size: 11px; color: var(--text-hint); }
+
+@media (max-width: 768px) {
+  /* la tabla de stock no se convierte en cards: scroll horizontal */
+  .stock-table thead { display: table-header-group; }
+  .stock-table tbody tr { display: table-row; }
+  .stock-table td { display: table-cell; }
+  .stock-table td::before { content: none; }
+}

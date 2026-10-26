@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="/css/app.css"/>
   <link rel="stylesheet" href="/css/materiales-ordenes.css"/>
+  <link rel="stylesheet" href="/css/stock.css"/>
   <link rel="icon" href="/img/PyG-logo_mini.png" type="image/png"/>
 </head>
 <body>
@@ -41,6 +42,7 @@
         <button class="tab-btn active" data-tab="trailers"><i class="ti ti-truck"></i> Trailers</button>
         <button class="tab-btn" data-tab="panol"><i class="ti ti-tool"></i> Pañol</button>
         <button class="tab-btn" data-tab="calidad"><i class="ti ti-clipboard-check"></i> Calidad</button>
+        <button class="tab-btn" data-tab="stock"><i class="ti ti-packages"></i> Stock</button>
       </div>
     </div>
     <div class="toolbar-right">
@@ -171,6 +173,65 @@
       </div>
     </div>
 
+    <!-- MODAL STOCK (componente) -->
+    <div class="modal-overlay" id="modal-stock" style="display:none">
+      <div class="modal">
+        <div class="modal-header">
+          <span id="form-title-stock">Nuevo Componente</span>
+          <button class="modal-close" onclick="closeStockModal()"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group span2">
+              <label>Componente *</label>
+              <input type="text" id="s-componente" placeholder="Ej: ESCALERA"/>
+            </div>
+            <div class="form-group span2">
+              <label>Código del Excel de stock</label>
+              <input type="text" id="s-codigo" class="mono" list="stk-articulos" placeholder="Ej: 02-017" oninput="stockCodigoChange()"/>
+              <span class="form-hint" id="s-codigo-hint">Opcional. Si lo vinculás, el STK ACTUAL se actualiza con cada importación.</span>
+            </div>
+            <div class="form-group">
+              <label>Stk mín</label>
+              <input type="number" step="any" id="s-min" placeholder="0"/>
+            </div>
+            <div class="form-group">
+              <label>Stk máx</label>
+              <input type="number" step="any" id="s-max" placeholder="0"/>
+            </div>
+            <div class="form-group">
+              <label>Consumo mensual</label>
+              <input type="number" step="any" id="s-consumo" placeholder="0"/>
+            </div>
+            <div class="form-group">
+              <label>Stk actual</label>
+              <input type="number" step="any" id="s-actual" placeholder="0"/>
+            </div>
+          </div>
+          <datalist id="stk-articulos"></datalist>
+          <input type="hidden" id="s-edit-id"/>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" onclick="closeStockModal()">Cancelar</button>
+          <button class="btn-nuevo" onclick="saveStock()"><i class="ti ti-device-floppy"></i> Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL RESULTADO IMPORTACIÓN STOCK -->
+    <div class="modal-overlay" id="modal-stock-import" style="display:none">
+      <div class="modal">
+        <div class="modal-header">
+          <span>Importación de stock</span>
+          <button class="modal-close" onclick="document.getElementById('modal-stock-import').style.display='none'"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="modal-body" id="stock-import-body"></div>
+        <div class="modal-footer">
+          <button class="btn-nuevo" onclick="document.getElementById('modal-stock-import').style.display='none'"><i class="ti ti-check"></i> Listo</button>
+        </div>
+      </div>
+    </div>
+
     <!-- TAB TRAILERS -->
     <section id="tab-trailers" class="tab-panel active">
       <div class="tab-section-header">
@@ -277,10 +338,25 @@
       </div>
     </section>
 
+    <!-- TAB STOCK -->
+    <section id="tab-stock" class="tab-panel">
+      <div class="tab-section-header">
+        <div class="stock-meta" id="stock-meta"></div>
+        <div class="stock-actions">
+          <input type="file" id="stock-file" accept=".xlsx,.xls,.csv" hidden onchange="importStockExcel(this)"/>
+          <button class="btn-cancel" id="btn-stock-import" onclick="pickStockExcel()"><i class="ti ti-file-upload"></i> Importar stock Excel</button>
+          <button class="btn-cancel" onclick="exportStockExcel()"><i class="ti ti-file-spreadsheet"></i> Exportar</button>
+        </div>
+      </div>
+      <div class="summary-grid" id="stock-summary"></div>
+      <div class="table-card"><div id="stock-body"></div></div>
+    </section>
+
   </main>
 
   <div id="toast" class="toast"></div>
   <script src="/js/ordenes-data.js"></script>
   <script src="/js/app.js"></script>
+  <script src="/js/stock.js"></script>
 </body>
 </html>

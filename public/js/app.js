@@ -51,6 +51,7 @@ async function loadAll() {
 
     setStatus(true)
     renderAll()
+    if (typeof loadStock === 'function') loadStock()
   } catch(e) {
     setStatus(false)
     toast('No se pudo conectar a Supabase', 'error')
@@ -66,6 +67,7 @@ function renderAll() {
   renderTable('calidad')
   renderMateriales()
   renderOrdenes()
+  if (typeof renderStock === 'function') renderStock()
   updateHeaderStat()
   if (activeView.trailers === 'gantt') renderGantt('trailers')
   if (activeView.panol    === 'gantt') renderGantt('panol')
@@ -93,8 +95,10 @@ function bindNav() {
       btn.classList.add('active')
       document.getElementById('tab-' + activeTab).classList.add('active')
       // Update button label
-      const labels = { trailers: 'Nuevo Trailer', panol: 'Nueva Tarea', calidad: 'Nueva Tarea' }
+      const labels = { trailers: 'Nuevo Trailer', panol: 'Nueva Tarea', calidad: 'Nueva Tarea', stock: 'Nuevo Componente' }
       document.getElementById('btn-nuevo-label').textContent = labels[activeTab] || 'Nuevo'
+      // El filtro de estados no aplica a Stock
+      document.getElementById('filter-status').style.display = activeTab === 'stock' ? 'none' : ''
     })
   })
 }
@@ -140,6 +144,8 @@ function bindForm() {
       clearForm('a')
       document.getElementById('a-inicio').value = hoyCorrecto().toISOString().slice(0,10)
       showModal('area')
+    } else if (activeTab === 'stock') {
+      openStockModal()
     }
   })
 
