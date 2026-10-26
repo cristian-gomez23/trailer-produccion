@@ -50,6 +50,7 @@ app.use('/api/tareas-avance', require('./routes/tareas-avance'))
 const makeAreaRouter = require('./routes/area')
 app.use('/api/panol',   makeAreaRouter('panol'))
 app.use('/api/calidad', makeAreaRouter('calidad'))
+   app.use('/api/stock', require('./routes/stock'))
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
