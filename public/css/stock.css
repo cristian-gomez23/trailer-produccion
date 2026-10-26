@@ -77,6 +77,24 @@
 
 .stock-table td.stk-acc .row-actions { justify-content: center; }
 
+/* Artículo sin parámetros cargados */
+.stock-table td.stk-sin-conf {
+  background: #fafafa;
+  color: var(--text-hint);
+  font-size: 12px;
+  font-style: italic;
+}
+/* Fila con seguimiento: marca a la izquierda */
+.stock-table tr.stk-seg td.stk-comp { box-shadow: inset 3px 0 0 var(--blue); }
+
+.stk-mas {
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--text-sec);
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
 .stock-legend {
   display: flex;
   flex-wrap: wrap;
